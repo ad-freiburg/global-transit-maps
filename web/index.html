@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>LOOM Vector Tiles</title>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="https://unpkg.com/leaflet@1.0.3/dist/leaflet.css" />	
+	<script type="text/javascript"  src="https://unpkg.com/leaflet@1.3.1/dist/leaflet.js"></script>
+	<script type="text/javascript"  src="https://unpkg.com/leaflet.vectorgrid@1.2.0"></script>
+</head>
+<body style='margin:0'>
+	<div id="map" style="width: 100vw; height: 100vh;"></div>
+
+	<script>
+		const loomStyles = {
+	        lines: function(properties, zoom) {
+	        	console.log(properties);
+	            return {
+	            	lineCap: properties.lineCap,
+	            	weight: properties.width,
+		            color: '#' + properties.color,
+		            opacity: 1,
+		            fill: false
+		        }
+	        },
+	        "inner-connections": function(properties, zoom) {
+	        	console.log(properties);
+	            return {
+	            	lineCap: properties.lineCap,
+	            	weight: properties.width,
+		            color: '#' + properties.color,
+		            opacity: 1,
+		            fill: false
+		        }
+	        },
+	         "stations": function(properties, zoom) {
+	        	console.log(properties);
+	            return {
+	            	lineCap: properties.lineCap,
+	            	weight: properties.width,
+		            color: '#' + properties.color,
+		            opacity: 1,
+		            fillColor: '#' + properties.fillColor,
+		            fillOpacity: 1,
+		            fill: true
+		        }
+	        },
+		};
+
+		const map = L.map('map');
+		var layerControl = L.control.layers([], [], {collapsed:true, position: 'topright'}).addTo(map);
+		map.setView({ lat: 47.37393285194738, lng: 8.536390713506405}, 14);
+
+		L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+		    attribution: '&copy; <a rel="noreferrer" target="_blank" href="#">OpenStreetMap</a>',
+		    maxZoom: 19,
+		    opacity:0.9
+		}).addTo(map);
+
+		const loomTileOptions = {
+			rendererFactory: L.canvas.tile,
+			vectorTileLayerStyles: loomStyles,
+			interactive: true
+		};
+
+		const tramSubwayGeo = L.vectorGrid.protobuf("/tiles/tram-subway/geo/{z}/{x}/{y}.mvt", loomTileOptions);
+		layerControl.addOverlay(tramSubwayGeo, "Tram/Subway (geo)");
+
+		const tramSubwayOctiGeo = L.vectorGrid.protobuf("/tiles/tram-subway/octi-geo/{z}/{x}/{y}.mvt", loomTileOptions);
+		layerControl.addOverlay(tramSubwayOctiGeo, "Tram/Subway (octi-geo)");
+
+		const tramSubwayOcti = L.vectorGrid.protobuf("/tiles/tram-subway/octi/{z}/{x}/{y}.mvt", loomTileOptions);
+		layerControl.addOverlay(tramSubwayOcti, "Tram/Subway (octi)");
+	</script>
+</body>
+</html>
