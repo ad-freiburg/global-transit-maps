@@ -8,28 +8,63 @@
 	<script type="text/javascript"  src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
 	<script type="text/javascript"  src="https://unpkg.com/leaflet.vectorgrid@latest/dist/Leaflet.VectorGrid.js"></script>
 	<style>
+		body {
+			font-size:  16px;
+		}
 			#controls {
 				position: absolute;
-				top: 2em;
-				left: 10em;
+				top: 20px;
+				left: 50px;
 				z-index: 1000;
-				background-color: white;
-				opacity: 0.9;
 			}
 
 			#stats {
 				position: absolute;
-				bottom: 2em;
-				right: 10em;
+				bottom: 10px;
+				right: 10px;
 				z-index: 1000;
 				background-color: white;
 				opacity: 0.9;
+		    font-family: sans-serif;
+		    font-size: 80%;
+		    padding: 10px;
+
+				border: 2px solid rgba(0,0,0,0.2);
+				border-radius: 5px;
 			}
 
 			select {
 				height: 3rem;
 				border-radius: 5px;
+				border: 2px solid rgba(0,0,0,0.2);
 				font-size: 120%;
+
+				background-color: white;
+				margin-left:  20px;
+			}
+
+			.linelabel {
+				font-weight: bold;
+		    font-size: 150%;
+		    padding: 5px;
+		    display: inline-block;
+		    border-radius: 3px;
+		    text-align: center;
+		    min-width: 26px;
+		  }
+
+			.stationlabel {
+				font-weight: bold;
+		    font-size: 150%;
+		    padding: 5px;
+		    display: inline-block;
+		    border-radius: 3px;
+		    background-color: #0d0d8a;
+		    color: white;
+			}
+
+			.leaflet-popup {
+				font-size:  13px;
 			}
 
 	</style>
@@ -48,16 +83,11 @@
         	<option value="geo">Geographical</option>
         	<option value="octi">Octilinear</option>        	
         	<option value="octi-geo">Geo-Octilinear</option>
-        	<option value="orthoradial">Orthoradial</option>
+        	<option value="orthorad">Orthoradial</option>
         </select>
 	</div>
 
 	<div id="stats">
-		Lorem
-	</div>
-
-	<div id="components">
-		Lorem
 	</div>
 
 	<script>
@@ -99,6 +129,8 @@
 
 
 	  var comps = new Set();
+	  var curNetwork;
+	  var curLayout;
 
 		const loomStyles = {
 	        lines: function(properties, zoom) {
@@ -137,10 +169,10 @@
 		const map = L.map('map');
 		map.setView({ lat: 47.37393285194738, lng: 8.536390713506405}, 16);
 
-		L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+		var baseLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
 		    attribution: '&copy; <a rel="noreferrer" target="_blank" href="#">OpenStreetMap</a>',
-		    maxZoom: 19,
-		    opacity:0.9
+		    maxZoom: 18,
+		    opacity:1
 		}).addTo(map);
 
 		const loomTileOptions = {
@@ -150,8 +182,33 @@
 			getFeatureId: function(a) { return a.properties["component"]; },
 		};
 
+		map.on('zoom', function() {
+			updateStats();
+		});
+
+		function msToTime(duration) {
+  var milliseconds = Math.floor((duration % 1000) / 100),
+    seconds = Math.floor((duration / 1000) % 60),
+    minutes = Math.floor((duration / (1000 * 60)) % 60),
+    hours = Math.floor((duration / (1000 * 60 * 60)) % 24);
+
+  hours = (hours < 10) ? "0" + hours : hours;
+  minutes = (minutes < 10) ? "0" + minutes : minutes;
+  seconds = (seconds < 10) ? "0" + seconds : seconds;
+
+  return hours + ":" + minutes + ":" + seconds + "." + milliseconds;
+}
+
 
       function loadMap(network, layout) {
+      	curNetwork = network;
+      	curLayout = layout;
+
+      	if (layout == "geo") baseLayer.setOpacity(0.9);
+      	if (layout == "octi") baseLayer.setOpacity(0.5);      	
+      	if (layout == "orthorad") baseLayer.setOpacity(0.5);      	
+      	if (layout == "octi-geo") baseLayer.setOpacity(0.9);
+
       	console.log("Loading", network, layout);
       	if (curLayer) map.removeLayer(curLayer);
       	curLayer = L.vectorGrid.protobuf("/tiles/" + network + "/" + layout + "/{z}/{x}/{y}.mvt", loomTileOptions);
@@ -175,12 +232,12 @@
 	      if (props["stationId"] !== undefined) {
 		      var popup = L.popup()
 			    .setLatLng({lat: e.lat, lng: e.lng})
-			    .setContent("Label: " + props["stationLabel"] + "<br><br><a href='/components/" + network + "/" + map.getZoom() + "/component-" + props["component"] + ".json" + "'>Download network GeoJSON</a>")
+			    .setContent("<div class='stationlabel'>" + props["stationLabel"] + "</div><br><br><a href='/components/" + network + "/" + map.getZoom() + "/component-" + props["component"] + ".json" + "' download >Download network GeoJSON</a>")
 			    .openOn(map);
 		  } else {
 		  	  var popup = L.popup()
 			    .setLatLng({lat: e.lat, lng: e.lng})
-			    .setContent("Line: " + props["line"] + "<br><br><a href='/components/" + network + "/" + map.getZoom() + "/component-" + props["component"] + ".json" + "'>Download network GeoJSON</a>")
+			    .setContent("<div class='linelabel' style='color:white;background-color:#" + props["color"] + "'>" + props["line"] + "</div><br><br><a href='/components/" + network + "/" + map.getZoom() + "/component-" + props["component"] + ".json" + "' download>Download network GeoJSON</a>")
 			    .openOn(map);
 		  }
 	    });
@@ -188,8 +245,51 @@
 
         document.getElementById("stats").innerHTML = "";
 
-      	loadStats(network, layout, map.getZoom()).then((stats) => { 
-      		console.log(stats);
+      	updateStats();
+
+      }
+
+      function updateStats() {
+      	loadStats(curNetwork, curLayout, map.getZoom()).then((stats) => { 
+      		let html = "<table>";
+      		html += "<tr><th colspan=2><b>Input</b></th></tr>"
+      		html += "<tr><td>Num nodes</td><td>" + stats["topo"]["num_nds_in"] + "</td></tr>"      		
+      		html += "<tr><td>Num edges</td><td>" + stats["topo"]["num_edgs_in"] + "</td></tr>"    
+
+      		html += "<tr><th colspan=2><b>Network extraction</b></th></tr>"
+      		html += "<tr><td>Iterations</td><td>" + stats["topo"]["iters"] + "</td></tr>"      		
+      		html += "<tr><td>Num nodes</td><td>" + stats["topo"]["num_nds_out"] + "</td></tr>"      		
+      		html += "<tr><td>Num edges</td><td>" + stats["topo"]["num_edgs_out"] + "</td></tr>"  
+      		html += "<tr><td>Num geo components</td><td>" + stats["topo"]["num_components"] + "</td></tr>"   
+      		html += "<tr><td>Max number lines p. segment</td><td>" + (stats["loom"]["input_max_number_lines"]) + "</td></tr>"  
+      		html += "<tr><td>Construction time</td><td>" + msToTime(stats["topo"]["time_const"]) + "</td></tr>"      		
+      		html += "<tr><td>Turn restr time</td><td>" + msToTime(stats["topo"]["time_restr_inf"]) + "</td></tr>"      		      		
+      		html += "<tr><td>Station insertion time</td><td>" + msToTime(stats["topo"]["time_station_insert"]) + "</td></tr>"           		
+      		html += "<tr><td><b>Total time</b></td><td>" + msToTime(stats["topo"]["time_const"] + stats["topo"]["time_restr_inf"] + stats["topo"]["time_station_insert"]) + "</td></tr>"
+
+      		if (Object.keys(stats["octi"]).length) {
+	      		html += "<tr><th colspan=2><b>Schematization</b></th></tr>"
+	      		html += "<tr><td>#comp w/o found drawing</td><td>" + (stats["octi"]["num-comps-no-embedding-found"]) + "</td></tr>"      		
+	      		html += "<tr><td>Total score</td><td>" + (stats["octi"]["scores"]["total-score"]) + "</td></tr>"      		      		
+	      		html += "<tr><td>Topology violations</td><td>" + (stats["octi"]["scores"]["topo-violations"]) + "</td></tr>"           		
+	      		html += "<tr><td><b>Total time</b></td><td>" + msToTime(stats["octi"]["time-ms"]) + "</td></tr>"
+	      	}
+
+      		html += "<tr><th colspan=2><b>Line-Ordering Optimization</b></th></tr>"		
+      		html += "<tr><td>Num separations</td><td>" + (stats["loom"]["avg_num_separations"]) + "</td></tr>"   
+      		html += "<tr><td>Num crossings</td><td>" + (stats["loom"]["avg_num_crossings"]) + "</td></tr>"        		
+      		html += "<tr><td>Line graph reduction time</td><td>" + msToTime(stats["loom"]["line_graph_simplification_time"]) + "</td></tr>"     		
+      		html += "<tr><td>Optimization time</td><td>" + msToTime(stats["loom"]["avg_solve_time"]) + "</td></tr>"
+      		html += "<tr><td><b>Total time</b></td><td>" + msToTime(stats["loom"]["line_graph_simplification_time"] + stats["loom"]["avg_solve_time"]) + "</td></tr>"
+
+	      	html += "<tr><th colspan=2><b>Tile rendering</b></th></tr>"       		
+      		html += "<tr><td><b>Total time</b></td><td>" + msToTime(stats["render"]["time"]) + "</td></tr>"
+
+      		html += "</table>";
+
+
+
+      		document.getElementById("stats").innerHTML = html;
       	});
       }
 

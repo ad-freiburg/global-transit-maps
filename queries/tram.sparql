@@ -1,0 +1,31 @@
+PREFIX ogc: <http://www.opengis.net/rdf#>
+PREFIX osmrel: <https://www.openstreetmap.org/relation/>
+PREFIX geo: <http://www.opengis.net/ont/geosparql#>
+PREFIX osm: <https://www.openstreetmap.org/>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX osmkey: <https://www.openstreetmap.org/wiki/Key:>
+PREFIX osm2rdf: <https://osm2rdf.cs.uni-freiburg.de/rdf#>
+SELECT ?color ?id ?label ?station_label ?station_id ?geom WHERE {
+  {
+	  ?rel osmkey:route "tram" .
+	  ?rel osmrel:member ?mem .
+	  OPTIONAL {?rel osmkey:colour ?color} .
+	  OPTIONAL {?rel osmkey:colour ?id} .
+	  ?rel osmkey:ref ?label .
+	  ?mem osm:id ?osm_id .
+	  ?osm_id geo:hasGeometry ?geom .
+	  { ?osm_id osmkey:railway "tram" } UNION { ?osm_id osmkey:railway "subway" } UNION { ?osm_id osmkey:railway "light_rail" }.
+  } UNION {
+	  ?osm_id geo:hasGeometry ?geom .
+	  ?osm_id osmkey:public_transport "stop_position" .
+	  ?osm_id osmkey:name ?station_label .
+	  { ?osm_id osmkey:tram "yes" } UNION { ?osm_id osmkey:subway "yes" } UNION { ?osm_id osmkey:light_rail "yes" }.
+  } UNION {
+	  ?rel osmkey:route "tram" .
+	  ?rel osmrel:member ?mem .
+	  ?mem osm:id ?osm_id .
+	  ?osm_id geo:hasGeometry ?geom .
+	  ?osm_id osmkey:public_transport "stop_position" .
+	  ?osm_id osmkey:name ?station_label .
+  }
+}
