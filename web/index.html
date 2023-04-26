@@ -4,17 +4,104 @@
 	<title>LOOM Vector Tiles</title>
 	<meta charset="utf-8" />
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<link rel="stylesheet" href="https://unpkg.com/leaflet@1.0.3/dist/leaflet.css" />	
-	<script type="text/javascript"  src="https://unpkg.com/leaflet@1.3.1/dist/leaflet.js"></script>
-	<script type="text/javascript"  src="https://unpkg.com/leaflet.vectorgrid@1.2.0"></script>
+	<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />	
+	<script type="text/javascript"  src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+	<script type="text/javascript"  src="https://unpkg.com/leaflet.vectorgrid@latest/dist/Leaflet.VectorGrid.js"></script>
+	<style>
+			#controls {
+				position: absolute;
+				top: 2em;
+				left: 10em;
+				z-index: 1000;
+				background-color: white;
+				opacity: 0.9;
+			}
+
+			#stats {
+				position: absolute;
+				bottom: 2em;
+				right: 10em;
+				z-index: 1000;
+				background-color: white;
+				opacity: 0.9;
+			}
+
+			select {
+				height: 3rem;
+				border-radius: 5px;
+				font-size: 120%;
+			}
+
+	</style>
 </head>
 <body style='margin:0'>
 	<div id="map" style="width: 100vw; height: 100vh;"></div>
 
+	<div id="controls">
+		<select name="network" id="network">
+        	<option value="tram">Tram</option>
+        	<option value="subway-lightrail">Subway</option>        	
+        	<option value="rail-commuter">Rail (Commuter)</option>
+        	<option value="rail">Rail (Long Distance)</option>
+        </select>
+        <select name="layout" id="layout">
+        	<option value="geo">Geographical</option>
+        	<option value="octi">Octilinear</option>        	
+        	<option value="octi-geo">Geo-Octilinear</option>
+        	<option value="orthoradial">Orthoradial</option>
+        </select>
+	</div>
+
+	<div id="stats">
+		Lorem
+	</div>
+
+	<div id="components">
+		Lorem
+	</div>
+
 	<script>
+
+		// see https://github.com/Leaflet/Leaflet.VectorGrid/issues/148#issuecomment-1371642250
+		L.Canvas.Tile.include({
+		_onClick: function (e) {
+			var point = this._map.mouseEventToLayerPoint(e).subtract(this.getOffset());
+			var layer;
+			var clickedLayer;
+
+			for (var id in this._layers) {
+				layer = this._layers[id];
+				if (
+					layer.options.interactive &&
+					layer._containsPoint(point) &&
+					!this._map._draggableMoved(layer)
+				) {
+					clickedLayer = layer;
+				}
+			}
+
+			if (clickedLayer) {
+	                         // offending code used to be right here
+				clickedLayer.fireEvent(e.type, this._map.layerPointToLatLng(this._map.mouseEventToLayerPoint(e)), true);
+			}
+		},
+	});
+
+	  var curLayer;
+
+      document.getElementById("network").onchange = function() {
+        loadMap(document.getElementById("network").value, document.getElementById("layout").value)
+      };
+
+      document.getElementById("layout").onchange = function() {       
+        loadMap(document.getElementById("network").value, document.getElementById("layout").value)
+      };
+
+
+	  var comps = new Set();
+
 		const loomStyles = {
 	        lines: function(properties, zoom) {
-	        	//console.log(properties);
 	            return {
 	            	lineCap: properties.lineCap,
 	            	weight: properties.width,
@@ -48,8 +135,7 @@
 		};
 
 		const map = L.map('map');
-		var layerControl = L.control.layers([], [], {collapsed:true, position: 'topright'}).addTo(map);
-		map.setView({ lat: 47.37393285194738, lng: 8.536390713506405}, 14);
+		map.setView({ lat: 47.37393285194738, lng: 8.536390713506405}, 16);
 
 		L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
 		    attribution: '&copy; <a rel="noreferrer" target="_blank" href="#">OpenStreetMap</a>',
@@ -60,56 +146,73 @@
 		const loomTileOptions = {
 			rendererFactory: L.canvas.tile,
 			vectorTileLayerStyles: loomStyles,
-			interactive: true
+			interactive: true,
+			getFeatureId: function(a) { return a.properties["component"]; },
 		};
 
-		const subwayLightrailGeo = L.vectorGrid.protobuf("/tiles/subway-lightrail/geo/{z}/{x}/{y}.mvt", loomTileOptions);
-		layerControl.addOverlay(subwayLightrailGeo, "Subway (geo)");
 
-		const subwayLightrailOctiGeo = L.vectorGrid.protobuf("/tiles/subway-lightrail//octi-geo/{z}/{x}/{y}.mvt", loomTileOptions);
-		layerControl.addOverlay(subwayLightrailOctiGeo, "Subway (octi-geo)");
+      function loadMap(network, layout) {
+      	console.log("Loading", network, layout);
+      	if (curLayer) map.removeLayer(curLayer);
+      	curLayer = L.vectorGrid.protobuf("/tiles/" + network + "/" + layout + "/{z}/{x}/{y}.mvt", loomTileOptions);
 
-		const subwayLightrailOcti = L.vectorGrid.protobuf("/tiles/subway-lightrail//octi/{z}/{x}/{y}.mvt", loomTileOptions);
-		layerControl.addOverlay(subwayLightrailOcti, "Subway (octi)");
+      	curLayer.on("load", function (e) {
+      		comps = new Set();
+ 			for (var tileKey in this._vectorTiles) {
+				var tile = this._vectorTiles[tileKey];
+				for (var fid in tile._features) {
+					var l = tile._features[fid];
+					if (l.layerName == "lines" && l.feature.properties["component"]) {
+						comps.add(l.feature.properties["component"]);
+					}
+				}
+	        }
+      	});
 
-		const subwayLightrailOrthorad = L.vectorGrid.protobuf("/tiles/subway-lightrail/orthorad/{z}/{x}/{y}.mvt", loomTileOptions);
-		layerControl.addOverlay(subwayLightrailOrthorad, "Subway (orthorad)");
+  	    curLayer.on("click", function (e) {
+	      console.log(e);
+	      var props = e.sourceTarget.properties;
+	      if (props["stationId"] !== undefined) {
+		      var popup = L.popup()
+			    .setLatLng({lat: e.lat, lng: e.lng})
+			    .setContent("Label: " + props["stationLabel"] + "<br><br><a href='/components/" + network + "/" + map.getZoom() + "/component-" + props["component"] + ".json" + "'>Download network GeoJSON</a>")
+			    .openOn(map);
+		  } else {
+		  	  var popup = L.popup()
+			    .setLatLng({lat: e.lat, lng: e.lng})
+			    .setContent("Line: " + props["line"] + "<br><br><a href='/components/" + network + "/" + map.getZoom() + "/component-" + props["component"] + ".json" + "'>Download network GeoJSON</a>")
+			    .openOn(map);
+		  }
+	    });
+      	curLayer.addTo(map);
 
-		const tramGeo = L.vectorGrid.protobuf("/tiles/tram/geo/{z}/{x}/{y}.mvt", loomTileOptions);
-		layerControl.addOverlay(tramGeo, "Tram (geo)");
+        document.getElementById("stats").innerHTML = "";
 
-		const tramOctiGeo = L.vectorGrid.protobuf("/tiles/tram/octi-geo/{z}/{x}/{y}.mvt", loomTileOptions);
-		layerControl.addOverlay(tramOctiGeo, "Tram (octi-geo)");
+      	loadStats(network, layout, map.getZoom()).then((stats) => { 
+      		console.log(stats);
+      	});
+      }
 
-		const tramOcti = L.vectorGrid.protobuf("/tiles/tram/octi/{z}/{x}/{y}.mvt", loomTileOptions);
-		layerControl.addOverlay(tramOcti, "Tram (octi)");
+      function loadStats(network, layout, zoom) {
+      	console.log("Loading stats", network, layout, zoom);
 
-		const tramOrthorad = L.vectorGrid.protobuf("/tiles/tram/orthorad/{z}/{x}/{y}.mvt", loomTileOptions);
-		layerControl.addOverlay(tramOrthorad, "Tram (orthorad)");
+        return new Promise((res, rej) => {
+          var xhr = new XMLHttpRequest();
+          xhr.open('GET', "../stats/" + network + "/" + zoom + "/" + layout + ".stats.json");
+          xhr.setRequestHeader('Content-Type', 'application/json');
+          xhr.responseType = 'json';
+          xhr.onload = function() {
+              if (xhr.status !== 200) {
+                rej({});
+                return;
+              }
+              var geojson = xhr.response;
+              res(geojson);
+          };
+          xhr.send();
+        });
+      }
 
-		const railGeo = L.vectorGrid.protobuf("/tiles/rail/geo/{z}/{x}/{y}.mvt", loomTileOptions);
-		layerControl.addOverlay(railGeo, "Rail (geo)");
-
-		const railOctiGeo = L.vectorGrid.protobuf("/tiles/rail/octi-geo/{z}/{x}/{y}.mvt", loomTileOptions);
-		layerControl.addOverlay(railOctiGeo, "Rail (octi-geo)");
-
-		const railOcti = L.vectorGrid.protobuf("/tiles/rail/octi/{z}/{x}/{y}.mvt", loomTileOptions);
-		layerControl.addOverlay(railOcti, "Rail (octi)");
-
-		const railOrthorad = L.vectorGrid.protobuf("/tiles/rail/orthorad/{z}/{x}/{y}.mvt", loomTileOptions);
-		layerControl.addOverlay(railOrthorad, "Rail (orthorad)");
-
-		const railcommuterGeo = L.vectorGrid.protobuf("/tiles/rail-commuter/geo/{z}/{x}/{y}.mvt", loomTileOptions);
-		layerControl.addOverlay(railcommuterGeo, "rail-commuter (geo)");
-
-		const railcommuterOctiGeo = L.vectorGrid.protobuf("/tiles/rail-commuter/octi-geo/{z}/{x}/{y}.mvt", loomTileOptions);
-		layerControl.addOverlay(railcommuterOctiGeo, "rail-commuter (octi-geo)");
-
-		const railcommuterOcti = L.vectorGrid.protobuf("/tiles/rail-commuter/octi/{z}/{x}/{y}.mvt", loomTileOptions);
-		layerControl.addOverlay(railcommuterOcti, "rail-commuter (octi)");
-
-		const railcommuterOrthorad = L.vectorGrid.protobuf("/tiles/rail-commuter/orthorad/{z}/{x}/{y}.mvt", loomTileOptions);
-		layerControl.addOverlay(railcommuterOrthorad, "rail-commuter (orthorad)");
 	</script>
 </body>
 </html>

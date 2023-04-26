@@ -3,6 +3,14 @@ LOOM=/local/data/brosip/loom/build/loom --write-stats
 TOPO=/local/data/brosip/loom/build/topo --write-stats
 TRANSITMAP=/local/data/brosip/loom/build/transitmap --random-colors --print-stats
 
+TRAMSTATS_GEO = $(patsubst %,stats/tram/%/geo.stats.json, 17 16 15 14 13 12 11 10 9 8 7 6 5 4 3 2 1 0)
+TRAMSTATS_OCTI = $(patsubst %,stats/tram/%/octi.stats.json, 17 16 15 14 13 12 11 10 9 8 7 6 5 4 3 2 1 0)
+TRAMSTATS_OCTIGEO = $(patsubst %,stats/tram/%/octi-geo.stats.json, 17 16 15 14 13 12 11 10 9 8 7 6 5 4 3 2 1 0)
+TRAMSTATS_ORTHORAD = $(patsubst %,stats/tram/%/orthorad.stats.json, 17 16 15 14 13 12 11 10 9 8 7 6 5 4 3 2 1 0)
+
+tram: $(TRAMSTATS_GEO) $(TRAMSTATS_OCTI) $(TRAMSTATS_OCTIGEO) $(TRAMSTATS_ORTHORAD)
+
+
 # keep all intermediate files
 .SECONDARY:
 
@@ -22,7 +30,7 @@ rail.15.topo.json: rail.json
 
 rail.%.topo.json: rail.15.topo.json
 	ln -s $< $@
-	ln -s components/rail/15 components/rail/$*
+	ln -s 15 components/rail/$*
 
 rail-commuter.15.topo.json: rail-commuter.json
 	mkdir -p components/rail-commuter/15
@@ -30,27 +38,27 @@ rail-commuter.15.topo.json: rail-commuter.json
 
 rail-commuter.%.topo.json: rail-commuter.15.topo.json
 	ln -s $< $@
-	ln -s components/rail-commuter/15 components/rail-commuter/$*
+	ln -s 15 components/rail-commuter/$*
 
 %.20.topo.json: %.15.topo.json
 	ln -s $< $@
-	ln -s components/$*/15 components/$*/20
+	ln -s 15 components/$*/20
 
 %.19.topo.json: %.15.topo.json
 	ln -s $< $@
-	ln -s components/$*/15 components/$*/19
+	ln -s 15 components/$*/19
 
 %.18.topo.json: %.15.topo.json
 	ln -s $< $@
-	ln -s components/$*/15 components/$*/18
+	ln -s 15 components/$*/18
 
 %.17.topo.json: %.15.topo.json
 	ln -s $< $@
-	ln -s components/$*/15 components/$*/17
+	ln -s 15 components/$*/17
 
 %.16.topo.json: %.15.topo.json
 	ln -s $< $@
-	ln -s components/$*/15 components/$*/16
+	ln -s 15 components/$*/16
 
 %.15.topo.json: %.json
 	mkdir -p components/$*/15
@@ -61,10 +69,14 @@ rail-commuter.%.topo.json: rail-commuter.15.topo.json
 	$(TOPO)  --write-components --write-components-path components/$*/14 -d 200 < $< > $@
 
 .SECONDEXPANSION:
-%.topo.json: $$(firstword $$(subst ., , $$*)).14.topo.json
+%.topo.json: $$(firstword $$(subst ., , $$*)).14.topo.json | dummy%
 	ln -s $< $@
-	ln -s components/$(firstword $(subst ., , $*))/14 components/$(firstword $(subst ., , $*))/$(lastword $(subst ., , $*))
+	ln -s 14 components/$(firstword $(subst ., , $*))/$(lastword $(subst ., , $*))
 
+# requried to make to catch-all rules above less attractive, see
+# https://stackoverflow.com/questions/18716736/changing-the-priority-of-rules-in-make/18726681#18726681
+dummy%:
+	@:
 
 #########
 
@@ -91,7 +103,7 @@ rail-commuter.%.topo.json: rail-commuter.15.topo.json
 	$(LOOM) -m anneal < $< > $@
 
 .SECONDEXPANSION:
-%.loom.json: $$(firstword $$(subst ., , $$*)).14.loom.json
+%.loom.json: $$(firstword $$(subst ., , $$*)).14.loom.json | dummy%
 	echo WHAT $< $@
 	ln -s $< $@
 
@@ -111,19 +123,17 @@ rail-commuter.%.topo.json: rail-commuter.15.topo.json
 	$(OCTI) --retry-on-error --skip-on-error -b orthoradial -g 75% < $< > $@
 
 .SECONDEXPANSION:
-%.octi.json: $$(firstword $$(subst ., , $$*)).14.octi.json
+%.octi.json: $$(firstword $$(subst ., , $$*)).14.octi.json | dummy%
 	ln -s $< $@
 
 .SECONDEXPANSION:
-%.octi-geo.json: $$(firstword $$(subst ., , $$*)).14.octi-geo.json
+%.octi-geo.json: $$(firstword $$(subst ., , $$*)).14.octi-geo.json | dummy%
 	ln -s $< $@
 
 .SECONDEXPANSION:
-%.orthorad.json: $$(firstword $$(subst ., , $$*)).14.orthorad.json
+%.orthorad.json: $$(firstword $$(subst ., , $$*)).14.orthorad.json | dummy%
 	ln -s $< $@
 
-
-tiles/%: tiles/%/17 tiles/%/16 tiles/%/15 tiles/%/14 tiles/%/13 tiles/%/12 tiles/%/11 tiles/%/10 tiles/%/9 tiles/%/8 tiles/%/7 tiles/%/6 tiles/%/5 tiles/%/4 tiles/%/3 tiles/%/2 tiles/%/1 tiles/%/0;
 
 .SECONDEXPANSION:
 tiles/%/geo/20: %.20.geo.json
@@ -561,8 +571,22 @@ tiles/%/orthorad/0: %.14.orthorad.json
 .SECONDEXPANSION:
 stats/%/octi.stats.json: $$(firstword $$(subst /, , $$*)).$$(lastword $$(subst /, , $$*)).topo.json $$(firstword $$(subst /, , $$*)).$$(lastword $$(subst /, , $$*)).loom.json $$(firstword $$(subst /, , $$*)).$$(lastword $$(subst /, , $$*)).octi.json tiles/$$(firstword $$(subst /, , $$*))/octi/$$(lastword $$(subst /, , $$*))
 	mkdir -p stats/$*
-	jq '{"topo": .[0].properties.statistics, "loom": .[1].properties.statistics, "octi": .[2].properties.statistics, "render":.[3]}' -s $^ > $@
+	jq '{"topo": .[0].properties.statistics, "loom": .[1].properties.statistics, "octi": .[2].properties.statistics, "render":.[3]}' -s $^/stats.json > $@
 
+.SECONDEXPANSION:
+stats/%/octi-geo.stats.json: $$(firstword $$(subst /, , $$*)).$$(lastword $$(subst /, , $$*)).topo.json $$(firstword $$(subst /, , $$*)).$$(lastword $$(subst /, , $$*)).loom.json $$(firstword $$(subst /, , $$*)).$$(lastword $$(subst /, , $$*)).octi-geo.json tiles/$$(firstword $$(subst /, , $$*))/octi-geo/$$(lastword $$(subst /, , $$*))
+	mkdir -p stats/$*
+	jq '{"topo": .[0].properties.statistics, "loom": .[1].properties.statistics, "octi": .[2].properties.statistics, "render":.[3]}' -s $^/stats.json > $@
+
+.SECONDEXPANSION:
+stats/%/orthorad.stats.json: $$(firstword $$(subst /, , $$*)).$$(lastword $$(subst /, , $$*)).topo.json $$(firstword $$(subst /, , $$*)).$$(lastword $$(subst /, , $$*)).loom.json $$(firstword $$(subst /, , $$*)).$$(lastword $$(subst /, , $$*)).orthorad.json tiles/$$(firstword $$(subst /, , $$*))/orthorad/$$(lastword $$(subst /, , $$*))
+	mkdir -p stats/$*
+	jq '{"topo": .[0].properties.statistics, "loom": .[1].properties.statistics, "octi": .[2].properties.statistics, "render":.[3]}' -s $^/stats.json > $@
+
+.SECONDEXPANSION:
+stats/%/geo.stats.json: $$(firstword $$(subst /, , $$*)).$$(lastword $$(subst /, , $$*)).topo.json $$(firstword $$(subst /, , $$*)).$$(lastword $$(subst /, , $$*)).loom.json $$(firstword $$(subst /, , $$*)).$$(lastword $$(subst /, , $$*)).geo.json tiles/$$(firstword $$(subst /, , $$*))/geo/$$(lastword $$(subst /, , $$*))
+	mkdir -p stats/$*
+	jq '{"topo": .[0].properties.statistics, "loom": .[1].properties.statistics, "octi": {}, "render":.[3]}' -s $^/stats.json > $@
 
 clean:
 	rm *.json
