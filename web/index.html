@@ -43,8 +43,8 @@
 				margin-left:  20px;
 			}
 
-			.linelabel {
-				font-weight: bold;
+		.linelabel {
+			font-weight: bold;
 		    font-size: 150%;
 		    padding: 5px;
 		    display: inline-block;
@@ -53,8 +53,8 @@
 		    min-width: 26px;
 		  }
 
-			.stationlabel {
-				font-weight: bold;
+		.stationlabel {
+			font-weight: bold;
 		    font-size: 150%;
 		    padding: 5px;
 		    display: inline-block;
@@ -118,6 +118,7 @@
 	});
 
 	  var curLayer;
+	  var curHash;
 
       document.getElementById("network").onchange = function() {
         loadMap(document.getElementById("network").value, document.getElementById("layout").value)
@@ -166,12 +167,16 @@
 	        },
 		};
 
+
+
+
 		const map = L.map('map');
 		map.setView({ lat: 47.37393285194738, lng: 8.536390713506405}, 16);
+		map.attributionControl.setPrefix('University of Freiburg, Chair of Algorithms and Data Structures');
 
 		var baseLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
 		    attribution: '&copy; <a rel="noreferrer" target="_blank" href="#">OpenStreetMap</a>',
-		    maxZoom: 18,
+		    maxZoom: 17,
 		    opacity:1
 		}).addTo(map);
 
@@ -184,6 +189,10 @@
 
 		map.on('zoom', function() {
 			updateStats();
+		});
+
+		map.on('moveend', function(e) {
+			setHash(curNetwork + "/" + curLayout + "/" + map.getZoom() + "/" + map.getCenter().lat + "/" + map.getCenter().lng);
 		});
 
 		function msToTime(duration) {
@@ -201,6 +210,9 @@
 
 
       function loadMap(network, layout) {
+      	document.getElementById('network').value=network;      	
+      	document.getElementById('layout').value=layout;
+
       	curNetwork = network;
       	curLayout = layout;
 
@@ -252,14 +264,16 @@
       function updateStats() {
       	loadStats(curNetwork, curLayout, map.getZoom()).then((stats) => { 
       		let html = "<table>";
-      		html += "<tr><th colspan=2><b>Input</b></th></tr>"
-      		html += "<tr><td>Num nodes</td><td>" + stats["topo"]["num_nds_in"] + "</td></tr>"      		
-      		html += "<tr><td>Num edges</td><td>" + stats["topo"]["num_edgs_in"] + "</td></tr>"    
+      		html += "<tr><th colspan=2><b>OSM Input</b></th></tr>"
+      		html += "<tr><td>Num stations</td><td>" + stats["input"]["num_nds"] + "</td></tr>"
+      		html += "<tr><td>Num nodes</td><td>" + stats["input"]["num_nds"]  + 2 * stats["input"]["num_edgs"] + "</td></tr>"      		
+      		html += "<tr><td>Num edges</td><td>" + stats["input"]["num_edgs"] + "</td></tr>"    
 
       		html += "<tr><th colspan=2><b>Network extraction</b></th></tr>"
       		html += "<tr><td>Iterations</td><td>" + stats["topo"]["iters"] + "</td></tr>"      		
       		html += "<tr><td>Num nodes</td><td>" + stats["topo"]["num_nds_out"] + "</td></tr>"      		
       		html += "<tr><td>Num edges</td><td>" + stats["topo"]["num_edgs_out"] + "</td></tr>"  
+      		html += "<tr><td>Num stations</td><td>" + stats["topo"]["num_stations_out"] + "</td></tr>"  
       		html += "<tr><td>Num geo components</td><td>" + stats["topo"]["num_components"] + "</td></tr>"   
       		html += "<tr><td>Max number lines p. segment</td><td>" + (stats["loom"]["input_max_number_lines"]) + "</td></tr>"  
       		html += "<tr><td>Construction time</td><td>" + msToTime(stats["topo"]["time_const"]) + "</td></tr>"      		
@@ -312,6 +326,41 @@
           xhr.send();
         });
       }
+
+      function parseHash(h) {
+        h = h.substring(1);
+        var parts = h.split("/");
+
+        if (parts.length == 5) {
+        	network = parts[0];
+        	layout = parts[1];
+        	zoom = parts[2];
+        	lat = parseFloat(parts[3]);
+        	lng = parseFloat(parts[4]);
+
+        	if (lat != NaN && lng != NaN && zoom >= 0 && zoom <= 20 && ['tram', 'subway-lightrail', 'rail', 'rail-commuter'].includes(network) && ['geo', 'octi', 'octi-geo', 'orthorad'].includes(layout)) {
+	        	loadMap(network, layout);
+	        	map.setView([lat, lng], zoom);
+	        }
+        }
+      }
+
+      window.addEventListener("hashchange",() => {
+      	if (this.location.hash != curHash) {
+      		parseHash(window.location.hash);
+
+      	}
+      });
+
+      function setHash(h){
+      	  h = "#" + h;
+		  if (curHash != h) curHash = h;
+		  this.location.hash = h;
+		}
+
+
+      loadMap("tram", "geo");
+	  parseHash(this.location.hash);
 
 	</script>
 </body>
