@@ -24,7 +24,7 @@ RAILSTATS_OCTIGEO = $(patsubst %,stats/rail/%/octi-geo.stats.json, 17 16 15 14 1
 RAILSTATS_ORTHORAD = $(patsubst %,stats/rail/%/orthorad.stats.json, 17 16 15 14 13 12 11 10 9 8 7 6 5 4 3 2 1 0)
 
 tram: $(TRAMSTATS_GEO) $(TRAMSTATS_OCTI) $(TRAMSTATS_OCTIGEO) $(TRAMSTATS_ORTHORAD)
-subway: $(SUBWAY_LIGHTRAILSTATS_GEO) $(SUBWAY_LIGHTRAILSTATS_OCTI) $(SUBWAY_LIGHTRAILSTATS_OCTIGEO) $(SUBWAY_LIGHTRAILSTATS_ORTHORAD)
+subway-lightrail: $(SUBWAY_LIGHTRAILSTATS_GEO) $(SUBWAY_LIGHTRAILSTATS_OCTI) $(SUBWAY_LIGHTRAILSTATS_OCTIGEO) $(SUBWAY_LIGHTRAILSTATS_ORTHORAD)
 rail-commuter: $(RAIL_COMMUTERSTATS_GEO) $(RAIL_COMMUTERSTATS_OCTI) $(RAIL_COMMUTERSTATS_OCTIGEO) $(RAIL_COMMUTERSTATS_ORTHORAD)
 rail: $(RAILSTATS_GEO) $(RAILSTATS_OCTI) $(RAILSTATS_OCTIGEO) $(RAILSTATS_ORTHORAD)
 
@@ -32,12 +32,20 @@ rail: $(RAILSTATS_GEO) $(RAILSTATS_OCTI) $(RAILSTATS_OCTIGEO) $(RAILSTATS_ORTHOR
 # keep all intermediate files
 .SECONDARY:
 
+stats/%/query.stats.json: %.json
+	@:
+
 %.json: queries/%.sparql
+	mkdir -p stats/$*
+	echo "{\"query-time\":" > stats/$*/query.stats.json
 	@# get qid
-	curl -s -G --data-urlencode "backend=https://qlever.cs.uni-freiburg.de/api/osm-planet"   --data-urlencode "query@$<" "https://qlever.cs.uni-freiburg.de/mapui-petri/query" > response.json
+	/usr/bin/time --format="%e" bash -c 'curl -s -G --data-urlencode "backend=https://qlever.cs.uni-freiburg.de/api/osm-planet"   --data-urlencode "query@$<" "https://qlever.cs.uni-freiburg.de/mapui-petri/query" > response.json' 2>> stats/$*/query.stats.json
+
 	@# download GeoJSON export
-	curl -s -G --data "id=`jq .qid response.json | tr -d '\"'`" "https://qlever.cs.uni-freiburg.de/mapui-petri/export" > $@
+	echo ",\"transfer-time\": " >> stats/$*/query.stats.json
+	/usr/bin/time --format="%e" bash -c 'curl -s -G --data "id=`jq .qid response.json | tr -d '\''\"'\''`" "https://qlever.cs.uni-freiburg.de/mapui-petri/export" > $@' 2>> stats/$*/query.stats.json
 	rm response.json
+	echo "}" >> stats/$*/query.stats.json
 
 %.inputstats.json: %.json
 	echo "{\"num_nds\" : `grep Point $<  | wc -l`, \"num_edgs\" : `grep LineString $<  | wc -l` }" > $@
@@ -612,24 +620,27 @@ tiles/%/orthorad/0: %.14.orthorad.loom.json
 # STATS
 # -------------------------------
 .SECONDEXPANSION:
-stats/%/octi.stats.json: $$(firstword $$(subst /, , $$*)).$$(lastword $$(subst /, , $$*)).topo.json $$(firstword $$(subst /, , $$*)).$$(lastword $$(subst /, , $$*)).octi.loom.json $$(firstword $$(subst /, , $$*)).$$(lastword $$(subst /, , $$*)).octi.json $$(firstword $$(subst /, , $$*)).inputstats.json tiles/$$(firstword $$(subst /, , $$*))/octi/$$(lastword $$(subst /, , $$*))
+stats/%/octi.stats.json: $$(firstword $$(subst /, , $$*)).$$(lastword $$(subst /, , $$*)).topo.json $$(firstword $$(subst /, , $$*)).$$(lastword $$(subst /, , $$*)).octi.loom.json $$(firstword $$(subst /, , $$*)).$$(lastword $$(subst /, , $$*)).octi.json $$(firstword $$(subst /, , $$*)).inputstats.json  stats/$$(firstword $$(subst /, , $$*))/query.stats.json tiles/$$(firstword $$(subst /, , $$*))/octi/$$(lastword $$(subst /, , $$*))
 	mkdir -p stats/$*
-	jq '{"topo": .[0].properties.statistics, "loom": .[1].properties.statistics, "octi": .[2].properties.statistics, "render":.[5], "input":.[4]}' -s $^/stats.json > $@
+	jq '{"topo": .[0].properties.statistics, "loom": .[1].properties.statistics, "octi": .[2].properties.statistics, "render":.[5], "input":.[3], "query":.[4]}' -s $^/stats.json > $@
 
 .SECONDEXPANSION:
-stats/%/octi-geo.stats.json: $$(firstword $$(subst /, , $$*)).$$(lastword $$(subst /, , $$*)).topo.json $$(firstword $$(subst /, , $$*)).$$(lastword $$(subst /, , $$*)).octi-geo.loom.json $$(firstword $$(subst /, , $$*)).$$(lastword $$(subst /, , $$*)).octi-geo.json $$(firstword $$(subst /, , $$*)).inputstats.json tiles/$$(firstword $$(subst /, , $$*))/octi-geo/$$(lastword $$(subst /, , $$*))
+stats/%/octi-geo.stats.json: $$(firstword $$(subst /, , $$*)).$$(lastword $$(subst /, , $$*)).topo.json $$(firstword $$(subst /, , $$*)).$$(lastword $$(subst /, , $$*)).octi-geo.loom.json $$(firstword $$(subst /, , $$*)).$$(lastword $$(subst /, , $$*)).octi-geo.json $$(firstword $$(subst /, , $$*)).inputstats.json stats/$$(firstword $$(subst /, , $$*))/query.stats.json tiles/$$(firstword $$(subst /, , $$*))/octi-geo/$$(lastword $$(subst /, , $$*))
 	mkdir -p stats/$*
-	jq '{"topo": .[0].properties.statistics, "loom": .[1].properties.statistics, "octi": .[2].properties.statistics, "render":.[5], "input":.[4]}' -s $^/stats.json > $@
+	jq '{"topo": .[0].properties.statistics, "loom": .[1].properties.statistics, "octi": .[2].properties.statistics, "render":.[5], "input":.[3], "query":.[4]}' -s $^/stats.json > $@
 
 .SECONDEXPANSION:
-stats/%/orthorad.stats.json: $$(firstword $$(subst /, , $$*)).$$(lastword $$(subst /, , $$*)).topo.json $$(firstword $$(subst /, , $$*)).$$(lastword $$(subst /, , $$*)).orthorad.loom.json $$(firstword $$(subst /, , $$*)).$$(lastword $$(subst /, , $$*)).orthorad.json $$(firstword $$(subst /, , $$*)).inputstats.json tiles/$$(firstword $$(subst /, , $$*))/orthorad/$$(lastword $$(subst /, , $$*))
+stats/%/orthorad.stats.json: $$(firstword $$(subst /, , $$*)).$$(lastword $$(subst /, , $$*)).topo.json $$(firstword $$(subst /, , $$*)).$$(lastword $$(subst /, , $$*)).orthorad.loom.json $$(firstword $$(subst /, , $$*)).$$(lastword $$(subst /, , $$*)).orthorad.json $$(firstword $$(subst /, , $$*)).inputstats.json stats/$$(firstword $$(subst /, , $$*))/query.stats.json tiles/$$(firstword $$(subst /, , $$*))/orthorad/$$(lastword $$(subst /, , $$*))
 	mkdir -p stats/$*
-	jq '{"topo": .[0].properties.statistics, "loom": .[1].properties.statistics, "octi": .[2].properties.statistics, "render":.[5], "input":.[4]}' -s $^/stats.json > $@
+	jq '{"topo": .[0].properties.statistics, "loom": .[1].properties.statistics, "octi": .[2].properties.statistics, "render":.[5], "input":.[3], "query":.[4]}' -s $^/stats.json > $@
 
 .SECONDEXPANSION:
-stats/%/geo.stats.json: $$(firstword $$(subst /, , $$*)).$$(lastword $$(subst /, , $$*)).topo.json $$(firstword $$(subst /, , $$*)).$$(lastword $$(subst /, , $$*)).loom.json $$(firstword $$(subst /, , $$*)).$$(lastword $$(subst /, , $$*)).geo.json $$(firstword $$(subst /, , $$*)).inputstats.json tiles/$$(firstword $$(subst /, , $$*))/geo/$$(lastword $$(subst /, , $$*))
+stats/%/geo.stats.json: $$(firstword $$(subst /, , $$*)).$$(lastword $$(subst /, , $$*)).topo.json $$(firstword $$(subst /, , $$*)).$$(lastword $$(subst /, , $$*)).loom.json $$(firstword $$(subst /, , $$*)).$$(lastword $$(subst /, , $$*)).geo.json $$(firstword $$(subst /, , $$*)).inputstats.json  stats/$$(firstword $$(subst /, , $$*))/query.stats.json tiles/$$(firstword $$(subst /, , $$*))/geo/$$(lastword $$(subst /, , $$*))
 	mkdir -p stats/$*
-	jq '{"topo": .[0].properties.statistics, "loom": .[1].properties.statistics, "octi": {}, "render":.[4], "input":.[3]}' -s $^/stats.json > $@
+	jq '{"topo": .[0].properties.statistics, "loom": .[1].properties.statistics, "octi": {}, "render":.[5], "input":.[3], "query":.[4]}' -s $^/stats.json > $@
 
 clean:
-	rm *.json
+	rm -rf tiles/*
+	rm -rf stats/*
+	rm -rf *.json
+	rm -rf components/*

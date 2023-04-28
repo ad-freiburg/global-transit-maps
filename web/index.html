@@ -3,70 +3,64 @@
 <head>
 	<title>LOOM Vector Tiles</title>
 	<meta charset="utf-8" />
+	<meta name="author" content="Patrick Brosi, University of Freiburg, Chair of Algorithms and Datastructures ">
+	<meta name="contact" content="brosi[at]cs.uni-freiburg.de">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />	
 	<script type="text/javascript"  src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
 	<script type="text/javascript"  src="https://unpkg.com/leaflet.vectorgrid@latest/dist/Leaflet.VectorGrid.js"></script>
 	<style>
-		body {
-			font-size:  16px;
+		 body {
+		     font-size: 16px;
 		}
-			#controls {
-				position: absolute;
-				top: 20px;
-				left: 50px;
-				z-index: 1000;
-			}
-
-			#stats {
-				position: absolute;
-				bottom: 10px;
-				right: 10px;
-				z-index: 1000;
-				background-color: white;
-				opacity: 0.9;
-		    font-family: sans-serif;
-		    font-size: 80%;
-		    padding: 10px;
-
-				border: 2px solid rgba(0,0,0,0.2);
-				border-radius: 5px;
-			}
-
-			select {
-				height: 3rem;
-				border-radius: 5px;
-				border: 2px solid rgba(0,0,0,0.2);
-				font-size: 120%;
-
-				background-color: white;
-				margin-left:  20px;
-			}
-
-		.linelabel {
-			font-weight: bold;
-		    font-size: 150%;
-		    padding: 5px;
-		    display: inline-block;
-		    border-radius: 3px;
-		    text-align: center;
-		    min-width: 26px;
-		  }
-
-		.stationlabel {
-			font-weight: bold;
-		    font-size: 150%;
-		    padding: 5px;
-		    display: inline-block;
-		    border-radius: 3px;
-		    background-color: #0d0d8a;
-		    color: white;
-			}
-
-			.leaflet-popup {
-				font-size:  13px;
-			}
-
+		 #controls {
+		     position: absolute;
+		     top: 20px;
+		     left: 50px;
+		     z-index: 1000;
+		}
+		 #stats {
+		     position: absolute;
+		     bottom: 10px;
+		     right: 10px;
+		     z-index: 1000;
+		     background-color: white;
+		     opacity: 0.9;
+		     font-family: sans-serif;
+		     font-size: 80%;
+		     padding: 10px;
+		     border: 2px solid rgba(0,0,0,0.2);
+		     border-radius: 5px;
+		}
+		 select {
+		     height: 3rem;
+		     border-radius: 5px;
+		     border: 2px solid rgba(0,0,0,0.2);
+		     font-size: 120%;
+		     background-color: white;
+		     margin-left: 20px;
+		}
+		 .linelabel {
+		     font-weight: bold;
+		     font-size: 150%;
+		     padding: 5px;
+		     display: inline-block;
+		     border-radius: 3px;
+		     text-align: center;
+		     min-width: 26px;
+		}
+		 .stationlabel {
+		     font-weight: bold;
+		     font-size: 150%;
+		     padding: 5px;
+		     display: inline-block;
+		     border-radius: 3px;
+		     background-color: #0d0d8a;
+		     color: white;
+		}
+		 .leaflet-popup {
+		     font-size: 13px;
+		} 
 	</style>
 </head>
 <body style='margin:0'>
@@ -75,7 +69,7 @@
 	<div id="controls">
 		<select name="network" id="network">
         	<option value="tram">Tram</option>
-        	<option value="subway-lightrail">Subway</option>        	
+        	<option value="subway-lightrail">Subway/Lightrail</option>        	
         	<option value="rail-commuter">Rail (Commuter)</option>
         	<option value="rail">Rail (Long Distance)</option>
         </select>
@@ -90,277 +84,290 @@
 	<div id="stats">
 	</div>
 
-	<script>
-
-		// see https://github.com/Leaflet/Leaflet.VectorGrid/issues/148#issuecomment-1371642250
+	<script>		// see https://github.com/Leaflet/Leaflet.VectorGrid/issues/148#issuecomment-1371642250
 		L.Canvas.Tile.include({
-		_onClick: function (e) {
-			var point = this._map.mouseEventToLayerPoint(e).subtract(this.getOffset());
-			var layer;
-			var clickedLayer;
+		    _onClick: function(e) {
+		        var point = this._map.mouseEventToLayerPoint(e).subtract(this.getOffset());
+		        var layer;
+		        var clickedLayer;
 
-			for (var id in this._layers) {
-				layer = this._layers[id];
-				if (
-					layer.options.interactive &&
-					layer._containsPoint(point) &&
-					!this._map._draggableMoved(layer)
-				) {
-					clickedLayer = layer;
-				}
-			}
+		        for (var id in this._layers) {
+		            layer = this._layers[id];
+		            if (
+		                layer.options.interactive &&
+		                layer._containsPoint(point) &&
+		                !this._map._draggableMoved(layer)
+		            ) {
+		                clickedLayer = layer;
+		            }
+		        }
 
-			if (clickedLayer) {
-	                         // offending code used to be right here
-				clickedLayer.fireEvent(e.type, this._map.layerPointToLatLng(this._map.mouseEventToLayerPoint(e)), true);
-			}
-		},
-	});
+		        if (clickedLayer) {
+		            // offending code used to be right here
+		            clickedLayer.fireEvent(e.type, this._map.layerPointToLatLng(this._map.mouseEventToLayerPoint(e)), true);
+		        }
+		    },
+		});
 
-	  var curLayer;
-	  var curHash;
+		var curLayer;
+		var curHash;
 
-      document.getElementById("network").onchange = function() {
-        loadMap(document.getElementById("network").value, document.getElementById("layout").value)
-      };
+		document.getElementById("network").onchange = function() {
+		    loadMap(document.getElementById("network").value, document.getElementById("layout").value)
+		};
 
-      document.getElementById("layout").onchange = function() {       
-        loadMap(document.getElementById("network").value, document.getElementById("layout").value)
-      };
+		document.getElementById("layout").onchange = function() {
+		    loadMap(document.getElementById("network").value, document.getElementById("layout").value)
+		};
 
 
-	  var comps = new Set();
-	  var curNetwork;
-	  var curLayout;
+		var comps = new Set();
+		var curNetwork;
+		var curLayout;
 
 		const loomStyles = {
-	        lines: function(properties, zoom) {
-	            return {
-	            	lineCap: properties.lineCap,
-	            	weight: properties.width,
+		    lines: function(properties, zoom) {
+		        return {
+		            lineCap: properties.lineCap,
+		            weight: properties.width,
 		            color: '#' + properties.color,
 		            opacity: 1,
 		            fill: false
 		        }
-	        },
-	        "inner-connections": function(properties, zoom) {
-	        	//console.log(properties);
-	            return {
-	            	lineCap: properties.lineCap,
-	            	weight: properties.width,
+		    },
+		    "inner-connections": function(properties, zoom) {
+		        //console.log(properties);
+		        return {
+		            lineCap: properties.lineCap,
+		            weight: properties.width,
 		            color: '#' + properties.color,
 		            opacity: 1,
 		            fill: false
 		        }
-	        },
-	         "stations": function(properties, zoom) {
-	        	//console.log(properties);
-	            return {
-	            	lineCap: properties.lineCap,
-	            	weight: properties.width,
+		    },
+		    "stations": function(properties, zoom) {
+		        //console.log(properties);
+		        return {
+		            lineCap: properties.lineCap,
+		            weight: properties.width,
 		            color: '#' + properties.color,
 		            opacity: 1,
 		            fillColor: '#' + properties.fillColor,
 		            fillOpacity: 1,
 		            fill: true
 		        }
-	        },
+		    },
 		};
 
 
 
 
 		const map = L.map('map');
-		map.setView({ lat: 47.37393285194738, lng: 8.536390713506405}, 16);
+		map.setView({
+		    lat: 47.37393285194738,
+		    lng: 8.536390713506405
+		}, 16);
 		map.attributionControl.setPrefix('University of Freiburg, Chair of Algorithms and Data Structures');
 
 		var baseLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
 		    attribution: '&copy; <a rel="noreferrer" target="_blank" href="#">OpenStreetMap</a>',
 		    maxZoom: 17,
-		    opacity:1
+		    opacity: 1
 		}).addTo(map);
 
 		const loomTileOptions = {
-			rendererFactory: L.canvas.tile,
-			vectorTileLayerStyles: loomStyles,
-			interactive: true,
-			getFeatureId: function(a) { return a.properties["component"]; },
+		    rendererFactory: L.canvas.tile,
+		    vectorTileLayerStyles: loomStyles,
+		    interactive: true,
+		    getFeatureId: function(a) {
+		        return a.properties["component"];
+		    },
 		};
 
 		map.on('zoom', function() {
-			updateStats();
+		    updateStats();
 		});
 
 		map.on('moveend', function(e) {
-			setHash(curNetwork + "/" + curLayout + "/" + map.getZoom() + "/" + map.getCenter().lat + "/" + map.getCenter().lng);
+		    setHash(curNetwork + "/" + curLayout + "/" + map.getZoom() + "/" + map.getCenter().lat + "/" + map.getCenter().lng);
 		});
 
 		function msToTime(duration) {
-  var milliseconds = Math.floor((duration % 1000) / 100),
-    seconds = Math.floor((duration / 1000) % 60),
-    minutes = Math.floor((duration / (1000 * 60)) % 60),
-    hours = Math.floor((duration / (1000 * 60 * 60)) % 24);
+		    var milliseconds = Math.floor((duration % 1000) / 100),
+		        seconds = Math.floor((duration / 1000) % 60),
+		        minutes = Math.floor((duration / (1000 * 60)) % 60),
+		        hours = Math.floor((duration / (1000 * 60 * 60)) % 24);
 
-  hours = (hours < 10) ? "0" + hours : hours;
-  minutes = (minutes < 10) ? "0" + minutes : minutes;
-  seconds = (seconds < 10) ? "0" + seconds : seconds;
+		    hours = (hours < 10) ? "0" + hours : hours;
+		    minutes = (minutes < 10) ? "0" + minutes : minutes;
+		    seconds = (seconds < 10) ? "0" + seconds : seconds;
 
-  return hours + ":" + minutes + ":" + seconds + "." + milliseconds;
-}
-
-
-      function loadMap(network, layout) {
-      	document.getElementById('network').value=network;      	
-      	document.getElementById('layout').value=layout;
-
-      	curNetwork = network;
-      	curLayout = layout;
-
-      	if (layout == "geo") baseLayer.setOpacity(0.9);
-      	if (layout == "octi") baseLayer.setOpacity(0.5);      	
-      	if (layout == "orthorad") baseLayer.setOpacity(0.5);      	
-      	if (layout == "octi-geo") baseLayer.setOpacity(0.9);
-
-      	console.log("Loading", network, layout);
-      	if (curLayer) map.removeLayer(curLayer);
-      	curLayer = L.vectorGrid.protobuf("/tiles/" + network + "/" + layout + "/{z}/{x}/{y}.mvt", loomTileOptions);
-
-      	curLayer.on("load", function (e) {
-      		comps = new Set();
- 			for (var tileKey in this._vectorTiles) {
-				var tile = this._vectorTiles[tileKey];
-				for (var fid in tile._features) {
-					var l = tile._features[fid];
-					if (l.layerName == "lines" && l.feature.properties["component"]) {
-						comps.add(l.feature.properties["component"]);
-					}
-				}
-	        }
-      	});
-
-  	    curLayer.on("click", function (e) {
-	      console.log(e);
-	      var props = e.sourceTarget.properties;
-	      if (props["stationId"] !== undefined) {
-		      var popup = L.popup()
-			    .setLatLng({lat: e.lat, lng: e.lng})
-			    .setContent("<div class='stationlabel'>" + props["stationLabel"] + "</div><br><br><a href='/components/" + network + "/" + map.getZoom() + "/component-" + props["component"] + ".json" + "' download >Download network GeoJSON</a>")
-			    .openOn(map);
-		  } else {
-		  	  var popup = L.popup()
-			    .setLatLng({lat: e.lat, lng: e.lng})
-			    .setContent("<div class='linelabel' style='color:white;background-color:#" + props["color"] + "'>" + props["line"] + "</div><br><br><a href='/components/" + network + "/" + map.getZoom() + "/component-" + props["component"] + ".json" + "' download>Download network GeoJSON</a>")
-			    .openOn(map);
-		  }
-	    });
-      	curLayer.addTo(map);
-
-        document.getElementById("stats").innerHTML = "";
-
-      	updateStats();
-
-      }
-
-      function updateStats() {
-      	loadStats(curNetwork, curLayout, map.getZoom()).then((stats) => { 
-      		let html = "<table>";
-      		html += "<tr><th colspan=2><b>OSM Input</b></th></tr>"
-      		html += "<tr><td>Num stations</td><td>" + stats["input"]["num_nds"] + "</td></tr>"
-      		html += "<tr><td>Num nodes</td><td>" + stats["input"]["num_nds"]  + 2 * stats["input"]["num_edgs"] + "</td></tr>"      		
-      		html += "<tr><td>Num edges</td><td>" + stats["input"]["num_edgs"] + "</td></tr>"    
-
-      		html += "<tr><th colspan=2><b>Network extraction</b></th></tr>"
-      		html += "<tr><td>Iterations</td><td>" + stats["topo"]["iters"] + "</td></tr>"      		
-      		html += "<tr><td>Num nodes</td><td>" + stats["topo"]["num_nds_out"] + "</td></tr>"      		
-      		html += "<tr><td>Num edges</td><td>" + stats["topo"]["num_edgs_out"] + "</td></tr>"  
-      		html += "<tr><td>Num stations</td><td>" + stats["topo"]["num_stations_out"] + "</td></tr>"  
-      		html += "<tr><td>Num geo components</td><td>" + stats["topo"]["num_components"] + "</td></tr>"   
-      		html += "<tr><td>Max number lines p. segment</td><td>" + (stats["loom"]["input_max_number_lines"]) + "</td></tr>"  
-      		html += "<tr><td>Construction time</td><td>" + msToTime(stats["topo"]["time_const"]) + "</td></tr>"      		
-      		html += "<tr><td>Turn restr time</td><td>" + msToTime(stats["topo"]["time_restr_inf"]) + "</td></tr>"      		      		
-      		html += "<tr><td>Station insertion time</td><td>" + msToTime(stats["topo"]["time_station_insert"]) + "</td></tr>"           		
-      		html += "<tr><td><b>Total time</b></td><td>" + msToTime(stats["topo"]["time_const"] + stats["topo"]["time_restr_inf"] + stats["topo"]["time_station_insert"]) + "</td></tr>"
-
-      		if (Object.keys(stats["octi"]).length) {
-	      		html += "<tr><th colspan=2><b>Schematization</b></th></tr>"
-	      		html += "<tr><td>#comp w/o found drawing</td><td>" + (stats["octi"]["num-comps-no-embedding-found"]) + "</td></tr>"      		
-	      		html += "<tr><td>Total score</td><td>" + (stats["octi"]["scores"]["total-score"]) + "</td></tr>"      		      		
-	      		html += "<tr><td>Topology violations</td><td>" + (stats["octi"]["scores"]["topo-violations"]) + "</td></tr>"           		
-	      		html += "<tr><td><b>Total time</b></td><td>" + msToTime(stats["octi"]["time-ms"]) + "</td></tr>"
-	      	}
-
-      		html += "<tr><th colspan=2><b>Line-Ordering Optimization</b></th></tr>"		
-      		html += "<tr><td>Num separations</td><td>" + (stats["loom"]["avg_num_separations"]) + "</td></tr>"   
-      		html += "<tr><td>Num crossings</td><td>" + (stats["loom"]["avg_num_crossings"]) + "</td></tr>"        		
-      		html += "<tr><td>Line graph reduction time</td><td>" + msToTime(stats["loom"]["line_graph_simplification_time"]) + "</td></tr>"     		
-      		html += "<tr><td>Optimization time</td><td>" + msToTime(stats["loom"]["avg_solve_time"]) + "</td></tr>"
-      		html += "<tr><td><b>Total time</b></td><td>" + msToTime(stats["loom"]["line_graph_simplification_time"] + stats["loom"]["avg_solve_time"]) + "</td></tr>"
-
-	      	html += "<tr><th colspan=2><b>Tile rendering</b></th></tr>"       		
-      		html += "<tr><td><b>Total time</b></td><td>" + msToTime(stats["render"]["time"]) + "</td></tr>"
-
-      		html += "</table>";
-
-
-
-      		document.getElementById("stats").innerHTML = html;
-      	});
-      }
-
-      function loadStats(network, layout, zoom) {
-      	console.log("Loading stats", network, layout, zoom);
-
-        return new Promise((res, rej) => {
-          var xhr = new XMLHttpRequest();
-          xhr.open('GET', "../stats/" + network + "/" + zoom + "/" + layout + ".stats.json");
-          xhr.setRequestHeader('Content-Type', 'application/json');
-          xhr.responseType = 'json';
-          xhr.onload = function() {
-              if (xhr.status !== 200) {
-                rej({});
-                return;
-              }
-              var geojson = xhr.response;
-              res(geojson);
-          };
-          xhr.send();
-        });
-      }
-
-      function parseHash(h) {
-        h = h.substring(1);
-        var parts = h.split("/");
-
-        if (parts.length == 5) {
-        	network = parts[0];
-        	layout = parts[1];
-        	zoom = parts[2];
-        	lat = parseFloat(parts[3]);
-        	lng = parseFloat(parts[4]);
-
-        	if (lat != NaN && lng != NaN && zoom >= 0 && zoom <= 20 && ['tram', 'subway-lightrail', 'rail', 'rail-commuter'].includes(network) && ['geo', 'octi', 'octi-geo', 'orthorad'].includes(layout)) {
-	        	loadMap(network, layout);
-	        	map.setView([lat, lng], zoom);
-	        }
-        }
-      }
-
-      window.addEventListener("hashchange",() => {
-      	if (this.location.hash != curHash) {
-      		parseHash(window.location.hash);
-
-      	}
-      });
-
-      function setHash(h){
-      	  h = "#" + h;
-		  if (curHash != h) curHash = h;
-		  this.location.hash = h;
+		    return hours + ":" + minutes + ":" + seconds + "." + milliseconds;
 		}
 
 
-      loadMap("tram", "geo");
-	  parseHash(this.location.hash);
+		function loadMap(network, layout) {
+		    document.getElementById('network').value = network;
+		    document.getElementById('layout').value = layout;
+
+		    curNetwork = network;
+		    curLayout = layout;
+
+		    if (layout == "geo") baseLayer.setOpacity(0.9);
+		    if (layout == "octi") baseLayer.setOpacity(0.5);
+		    if (layout == "orthorad") baseLayer.setOpacity(0.5);
+		    if (layout == "octi-geo") baseLayer.setOpacity(0.9);
+
+		    console.log("Loading", network, layout);
+		    if (curLayer) map.removeLayer(curLayer);
+		    curLayer = L.vectorGrid.protobuf("/tiles/" + network + "/" + layout + "/{z}/{x}/{y}.mvt", loomTileOptions);
+
+		    curLayer.on("load", function(e) {
+		        comps = new Set();
+		        for (var tileKey in this._vectorTiles) {
+		            var tile = this._vectorTiles[tileKey];
+		            for (var fid in tile._features) {
+		                var l = tile._features[fid];
+		                if (l.layerName == "lines" && l.feature.properties["component"]) {
+		                    comps.add(l.feature.properties["component"]);
+		                }
+		            }
+		        }
+		    });
+
+		    curLayer.on("click", function(e) {
+		        console.log(e);
+		        var props = e.sourceTarget.properties;
+		        if (props["stationId"] !== undefined) {
+		            var popup = L.popup()
+		                .setLatLng({
+		                    lat: e.lat,
+		                    lng: e.lng
+		                })
+		                .setContent("<div class='stationlabel'>" + props["stationLabel"] + "</div><br><br><a href='/components/" + network + "/" + map.getZoom() + "/component-" + props["component"] + ".json" + "' download >Download network GeoJSON</a>")
+		                .openOn(map);
+		        } else {
+		            var popup = L.popup()
+		                .setLatLng({
+		                    lat: e.lat,
+		                    lng: e.lng
+		                })
+		                .setContent("<div class='linelabel' style='color:white;background-color:#" + props["color"] + "'>" + props["line"] + "</div><br><br><a href='/components/" + network + "/" + map.getZoom() + "/component-" + props["component"] + ".json" + "' download>Download network GeoJSON</a>")
+		                .openOn(map);
+		        }
+		    });
+		    curLayer.addTo(map);
+
+		    document.getElementById("stats").innerHTML = "";
+
+		    updateStats();
+
+		}
+
+		function updateStats() {
+		    loadStats(curNetwork, curLayout, map.getZoom()).then((stats) => {
+		        let html = "<table>";
+		        html += "<tr><th colspan=2><b><a target='_blank' href='/queries/" + curNetwork + ".sparql'>SPARQL Query</a></b></th></tr>"
+		        html += "<tr><td>Query time</td><td>" + msToTime(stats["query"]["query-time"] * 1000) + "s</td></tr>"
+		        html += "<tr><td>Transfer time</td><td>" + msToTime(stats["query"]["transfer-time"] * 1000) + "s</td></tr>"
+
+		        html += "<tr><th colspan=2><b>OSM Input</b></th></tr>"
+		        html += "<tr><td>Num stations</td><td>" + stats["input"]["num_nds"] + "</td></tr>"
+		        html += "<tr><td>Num nodes</td><td>" + (stats["input"]["num_nds"] + 2 * stats["input"]["num_edgs"]) + "</td></tr>"
+		        html += "<tr><td>Num edges</td><td>" + stats["input"]["num_edgs"] + "</td></tr>"
+
+		        html += "<tr><th colspan=2><b>Network extraction</b></th></tr>"
+		        html += "<tr><td>Iterations</td><td>" + stats["topo"]["iters"] + "</td></tr>"
+		        html += "<tr><td>Num nodes</td><td>" + stats["topo"]["num_nds_out"] + "</td></tr>"
+		        html += "<tr><td>Num edges</td><td>" + stats["topo"]["num_edgs_out"] + "</td></tr>"
+		        html += "<tr><td>Num stations</td><td>" + stats["topo"]["num_stations_out"] + "</td></tr>"
+		        html += "<tr><td>Num geo components</td><td>" + stats["topo"]["num_components"] + "</td></tr>"
+		        html += "<tr><td>Max number lines p. segment</td><td>" + (stats["loom"]["input_max_number_lines"]) + "</td></tr>"
+		        html += "<tr><td>Construction time</td><td>" + msToTime(stats["topo"]["time_const"]) + "</td></tr>"
+		        html += "<tr><td>Turn restr time</td><td>" + msToTime(stats["topo"]["time_restr_inf"]) + "</td></tr>"
+		        html += "<tr><td>Station insertion time</td><td>" + msToTime(stats["topo"]["time_station_insert"]) + "</td></tr>"
+		        html += "<tr><td><b>Total time</b></td><td>" + msToTime(stats["topo"]["time_const"] + stats["topo"]["time_restr_inf"] + stats["topo"]["time_station_insert"]) + "</td></tr>"
+
+		        if (Object.keys(stats["octi"]).length) {
+		            html += "<tr><th colspan=2><b>Schematization</b></th></tr>"
+		            html += "<tr><td>#comp w/o found drawing</td><td>" + (stats["octi"]["num-comps-no-embedding-found"]) + "</td></tr>"
+		            html += "<tr><td>Total score</td><td>" + (stats["octi"]["scores"]["total-score"]) + "</td></tr>"
+		            html += "<tr><td>Topology violations</td><td>" + (stats["octi"]["scores"]["topo-violations"]) + "</td></tr>"
+		            html += "<tr><td><b>Total time</b></td><td>" + msToTime(stats["octi"]["time-ms"]) + "</td></tr>"
+		        }
+
+		        html += "<tr><th colspan=2><b>Line-Ordering Optimization</b></th></tr>"
+		        html += "<tr><td>Num separations</td><td>" + (stats["loom"]["avg_num_separations"]) + "</td></tr>"
+		        html += "<tr><td>Num crossings</td><td>" + (stats["loom"]["avg_num_crossings"]) + "</td></tr>"
+		        html += "<tr><td>Line graph reduction time</td><td>" + msToTime(stats["loom"]["line_graph_simplification_time"]) + "</td></tr>"
+		        html += "<tr><td>Optimization time</td><td>" + msToTime(stats["loom"]["avg_solve_time"]) + "</td></tr>"
+		        html += "<tr><td><b>Total time</b></td><td>" + msToTime(stats["loom"]["line_graph_simplification_time"] + stats["loom"]["avg_solve_time"]) + "</td></tr>"
+
+		        html += "<tr><th colspan=2><b>Tile rendering</b></th></tr>"
+		        html += "<tr><td><b>Total time</b></td><td>" + msToTime(stats["render"]["time"]) + "</td></tr>"
+
+		        html += "</table>";
+
+
+
+		        document.getElementById("stats").innerHTML = html;
+		    });
+		}
+
+		function loadStats(network, layout, zoom) {
+		    console.log("Loading stats", network, layout, zoom);
+
+		    return new Promise((res, rej) => {
+		        var xhr = new XMLHttpRequest();
+		        xhr.open('GET', "../stats/" + network + "/" + zoom + "/" + layout + ".stats.json");
+		        xhr.setRequestHeader('Content-Type', 'application/json');
+		        xhr.responseType = 'json';
+		        xhr.onload = function() {
+		            if (xhr.status !== 200) {
+		                rej({});
+		                return;
+		            }
+		            var geojson = xhr.response;
+		            res(geojson);
+		        };
+		        xhr.send();
+		    });
+		}
+
+		function parseHash(h) {
+		    h = h.substring(1);
+		    var parts = h.split("/");
+
+		    if (parts.length == 5) {
+		        network = parts[0];
+		        layout = parts[1];
+		        zoom = parts[2];
+		        lat = parseFloat(parts[3]);
+		        lng = parseFloat(parts[4]);
+
+		        if (lat != NaN && lng != NaN && zoom >= 0 && zoom <= 20 && ['tram', 'subway-lightrail', 'rail', 'rail-commuter'].includes(network) && ['geo', 'octi', 'octi-geo', 'orthorad'].includes(layout)) {
+		            loadMap(network, layout);
+		            map.setView([lat, lng], zoom);
+		        }
+		    }
+		}
+
+		window.addEventListener("hashchange", () => {
+		    if (this.location.hash != curHash) {
+		        parseHash(window.location.hash);
+
+		    }
+		});
+
+		function setHash(h) {
+		    h = "#" + h;
+		    if (curHash != h) curHash = h;
+		    this.location.hash = h;
+		}
+
+
+		loadMap("tram", "geo");
+		parseHash(this.location.hash);
 
 	</script>
 </body>

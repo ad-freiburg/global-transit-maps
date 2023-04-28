@@ -1,0 +1,397 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="We provide weekly updated RDF triples in the .ttl format for the entire OpenStreetMap data, as well as extracts for individual continents and countries.">
+    <meta name="author" content="(C) 2021-2023 University of Freiburg, Chair of Algorithms and Datastructures">
+    <meta name="contact" content="brosi[at]cs.uni-freiburg.de">
+    <meta name="viewport" content="initial-scale=1">
+    <meta property="og:title" content="OpenStreetMap RDF Turtle (TTL) Extracts">
+    <meta property="og:image" content="/ttl.png">
+    <meta property="og:description" content="We provide weekly updated RDF triples in the .ttl format for the entire OpenStreetMap data, as well as extracts for individual continents and countries.">
+    <link rel="icon" href="favicon.ico">
+
+	<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />	
+	<script type="text/javascript"  src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+	<script type="text/javascript"  src="https://unpkg.com/leaflet.vectorgrid@latest/dist/Leaflet.VectorGrid.js"></script>
+
+    <title>Transit Vector Tile Service</title>
+
+    <style type="text/css">
+      :focus {
+        outline: 0
+      }
+
+      *,
+      ::after,
+      ::before {
+        box-sizing: border-box
+      }
+
+      html {
+        font-family: sans-serif;
+        line-height: 1.15;
+        -webkit-text-size-adjust: 100%;
+        -ms-text-size-adjust: 100%;
+        -ms-overflow-style: scrollbar;
+        -webkit-tap-highlight-color: transparent
+      }
+
+      @-ms-viewport {
+        width: device-width
+      }
+
+      body {
+        margin: 0;
+        font-size: 1rem;
+        font-weight: 400;
+        line-height: 1.5;
+        color: #212529;
+        text-align: left;
+        background-color: #fff
+      }
+
+      p {
+        margin-top: 0;
+        margin-bottom: 1rem
+      }
+
+      a {
+        color: #007bff;
+        text-decoration: none;
+        background-color: transparent;
+        -webkit-text-decoration-skip: objects
+      }
+
+      a:hover {
+        color: #0056b3;
+        text-decoration: underline
+      }
+
+      .container {
+        width: 100%;
+        padding-right: 15px;
+        padding-left: 15px;
+        margin-right: auto;
+        margin-left: auto
+      }
+
+      #map {      	
+        background:#eee;
+        padding: 0;
+        margin-bottom: 2rem;
+        border-radius: .3rem;
+        height: 60vh;
+        overflow: hidden;
+        border-radius: .25rem!important;
+        color: #fff!important
+      }
+
+       #code {      	
+       	display: none;
+        background:#eee;
+        padding: 10px;
+        margin-bottom: 2rem;
+        border-radius: .3rem;
+        height: 60vh;
+        overflow: hidden;
+        border-radius: .25rem!important;
+        color: #black;
+        font-size: 12px;
+        overflow: auto;
+      }
+
+      #map-ctn {
+        cursor: pointer
+      }
+
+
+      .ttl-header {
+        background: white;
+        z-index: 999;
+        width:  100%;
+        line-height: 1;
+        border-bottom: 1px solid #e5e5e5;
+        padding-top: 1rem!important;
+        padding-bottom: 1rem!important
+      }
+
+      .ttl-header-logo {
+        font-size: 2.25rem;
+        color: #343a40!important
+      }
+
+      .ttl-header .row {
+        -ms-flex-wrap: nowrap!important;
+        flex-wrap: nowrap!important
+      }
+
+      .ttl-header-logo:hover {
+        text-decoration: none
+      }
+
+      .nav-wrp {
+        position: relative;
+        z-index: 2;
+        height: 2.75rem;
+        overflow-y: hidden;
+        padding-top: .25rem!important;
+        margin-bottom: .5rem!important
+      }
+
+      .nav-wrp nav {
+        display: -webkit-box;
+        display: -ms-flexbox;
+        display: flex;
+        -ms-flex-wrap: nowrap;
+        flex-wrap: nowrap;
+        padding-bottom: 1rem;
+        margin-top: -1px;
+        overflow-x: auto;
+        text-align: center;
+        white-space: nowrap;
+        -webkit-overflow-scrolling: touch
+      }
+
+      .nav-wrp .nav-link {
+        padding-top: .75rem;
+        padding-bottom: .75rem;
+        font-size: .875rem
+      }
+
+      .ttl-title {
+        margin-bottom: 0;
+        font-size: 2rem;
+        font-weight: 400
+      }
+
+      .ttl-description {
+        font-size: 1.1rem;
+        color: #999
+      }
+
+      @media (min-width:40em) {
+        .ttl-title {
+          font-size: 3.5rem
+        }
+      }
+
+		th, td {
+		  padding: 5px;
+		  padding-right:10px;
+		}
+
+      footer {
+        padding: 2.5rem 0;
+        color: #999;
+        text-align: center;
+        border-top: .05rem solid #e5e5e5
+      }
+
+      tr {
+      	background-color:  #f9f9f9;
+      }
+
+      .ttl-footer p:last-child {
+        margin-bottom: 0
+      }
+
+    #planettbl td:nth-child(2) {
+	   font-size:0;
+    }
+
+    table {
+
+      	border-spacing: 4px;
+    }
+
+    table tt {
+    	font-size:11px;
+    }
+
+      #list {
+        width: 59%;
+        float: left;
+        margin: 0.5%; 
+      }
+
+      #ttlmap {
+        width: 38%;
+        float: left;
+        margin: 0.5%; 
+        position:  fixed;
+        right:  0;
+        margin-right:  1.5%;
+        margin-top: 4rem;
+      }
+
+      @media screen and (max-width: 1000px) {
+        #list, #ttlmap {
+          width: 100%; 
+          position: relative;
+        }
+      }
+  </style>
+  </head>
+
+  <body>
+    <div class="container">
+      <header class="ttl-header">
+        <div class="row">
+          <div class="txt-center">
+            <a class="ttl-header-logo ttl-font" href="#">Transit Vector Tile Service</a>
+          </div>
+        </div>
+      </header>
+
+      <div id="list" style="position:relative;">
+        <div id="desc">
+          <p>
+          We provide free and weekly updated <a href="https://wiki.openstreetmap.org/wiki/Vector_tiles">vector tiles</a> for transit maps generated from the entire OpenStreetMap data, in various layouts. Currently we offer tiles for the following network types: <tt>tram</tt>, <tt>subway-lightrail</tt>, <tt>rail-commuter</tt>, (long distance) <tt>rail</tt> and the following layouts: <tt>geo</tt>, <tt>octi</tt>, <tt>octi-geo</tt>, <tt>orthorad</tt>.
+      </p>
+<p>
+          The code for generating these tiles can be found <a target="_blank"
+            href="https://github.com/ad-freiburg/global-vector-tiles">on GitHub</a>.
+          </p>
+
+          <p>
+        	  An example map is shown on this page. The example code can be used to quickly add our vector tiles to a Leaflet web map. See also <a href="https://loom.cs.uni-freiburg.de/global/">our full example map</a>.
+      	</p>
+
+      	<p>
+        	  We offer the following TMS endpoints:
+
+        	  <table>
+        	  	<tr>
+        	  		<th>URL</th>
+        	  		<th>Description</th>        	  		
+        	  		<th>Layout</th>
+        	  	</tr>
+        	  	<tr>
+        	  		<td><tt>https://loom.cs.uni-freiburg.de/tiles/tram/geo/{z}/{x}/{y}.mvt</tt></td><td rowspan=4>All tram networks in OSM</td><td>Geographical</td></tr>
+				<tr>	<td><tt>https://loom.cs.uni-freiburg.de/tiles/tram/octi/{z}/{x}/{y}.mvt</tt></td><td>Octilinear</td></tr>
+				<tr>	<td><tt>https://loom.cs.uni-freiburg.de/tiles/tram/geo-octi/{z}/{x}/{y}.mvt</tt></td><td>Geo-Octilinear</td></tr>
+				<tr>	<td><tt>https://loom.cs.uni-freiburg.de/tiles/tram/orthorad/{z}/{x}/{y}.mvt</tt></td><td>Orthoradial</td></tr>
+
+				<tr>
+        	  		<td><tt>https://loom.cs.uni-freiburg.de/tiles/subway-lightrail/geo/{z}/{x}/{y}.mvt</tt></td><td rowspan=4>All subway/lightrail networks in OSM</td><td>Geographical</td></tr>
+				<tr>	<td><tt>https://loom.cs.uni-freiburg.de/tiles/subway-lightrail/octi/{z}/{x}/{y}.mvt</tt></td><td>Octilinear</td></tr>
+				<tr>	<td><tt>https://loom.cs.uni-freiburg.de/tiles/subway-lightrail/geo-octi/{z}/{x}/{y}.mvt</tt></td><td>Geo-Octilinear</td></tr>
+				<tr>	<td><tt>https://loom.cs.uni-freiburg.de/tiles/subway-lightrail/orthorad/{z}/{x}/{y}.mvt</tt></td><td>Orthoradial</td></tr>
+
+				<tr>
+        	  		<td><tt>https://loom.cs.uni-freiburg.de/tiles/rail-commuter/geo/{z}/{x}/{y}.mvt</tt></td><td rowspan=4>All commuter rail networks in OSM</td><td>Geographical</td></tr>
+				<tr>	<td><tt>https://loom.cs.uni-freiburg.de/tiles/rail-commuter/octi/{z}/{x}/{y}.mvt</tt></td><td>Octilinear</td></tr>
+				<tr>	<td><tt>https://loom.cs.uni-freiburg.de/tiles/rail-commuter/geo-octi/{z}/{x}/{y}.mvt</tt></td><td>Geo-Octilinear</td></tr>
+				<tr>	<td><tt>https://loom.cs.uni-freiburg.de/tiles/rail-commuter/orthorad/{z}/{x}/{y}.mvt</tt></td><td>Orthoradial</td></tr>
+
+				<tr>
+        	  		<td><tt>https://loom.cs.uni-freiburg.de/tiles/rail/geo/{z}/{x}/{y}.mvt</tt></td><td rowspan=4>All long-distance rail networks in OSM</td><td>Geographical</td></tr>
+				<tr>	<td><tt>https://loom.cs.uni-freiburg.de/tiles/rail/octi/{z}/{x}/{y}.mvt</tt></td><td>Octilinear</td></tr>
+				<tr>	<td><tt>https://loom.cs.uni-freiburg.de/tiles/rail/geo-octi/{z}/{x}/{y}.mvt</tt></td><td>Geo-Octilinear</td></tr>
+				<tr>	<td><tt>https://loom.cs.uni-freiburg.de/tiles/rail/orthorad/{z}/{x}/{y}.mvt</tt></td><td>Orthoradial</td></tr>
+
+			</table>
+      	</p>
+
+
+      </div>
+            </div>
+
+      <div id="ttlmap">
+		<div class="tab">
+		  <button class="tablinks" onclick="document.getElementById('map').style.display='none';document.getElementById('code').style.display='block'">Code</button>
+		  <button class="tablinks" onclick="document.getElementById('code').style.display='none';document.getElementById('map').style.display='block'"">Map</button>
+		</div>
+        <div id="map">
+        </div>
+
+        <div id="code">
+<pre>const map = L.map('map');
+map.setView({lat: 48.145, lng: 11.574}, 12);
+
+var baseLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 17,
+    opacity: 1
+}).addTo(map);
+
+L.vectorGrid.protobuf("https://loom.cs.uni-freiburg.de/tiles/subway-lightrail/orthorad/{z}/{x}/{y}.mvt", {
+    vectorTileLayerStyles: {
+        "lines": function(properties, zoom) {
+            return {
+                lineCap: properties.lineCap,
+                weight: properties.width,
+                color: '#' + properties.color
+            }
+        },
+        "inner-connections": function(properties, zoom) {
+            return {
+                lineCap: properties.lineCap,
+                weight: properties.width,
+                color: '#' + properties.color
+            }
+        },
+        "stations": function(properties, zoom) {
+            return {
+                lineCap: properties.lineCap,
+                weight: properties.width,
+                color: '#' + properties.color,
+                fillColor: '#' + properties.fillColor,
+                fillOpacity: 1,
+                fill: true
+            }
+        },
+    }
+}).addTo(map);        	</pre>
+        </div>
+
+         <div id="stats-ttl" class="stats">
+        </div>
+        <footer>
+          <p>2021-2023 University of Freiburg,
+          <a target="_blank" href="https://ad.informatik.uni-freiburg.de/">Chair of Algorithms and Data Structures</a>
+          <br/><a target="_blank" href="https://ad.informatik.uni-freiburg.de/impressum">Imprint</a> | <a target="_blank" href="https://uni-freiburg.de/zuv/datenschutzerklaerung/">Privacy Policy</a></p>
+        </footer>
+      </div>
+    </main>
+
+    <script>
+		const map = L.map('map');
+		map.setView({lat: 48.145, lng: 11.574}, 12);
+		map.attributionControl.setPrefix('University of Freiburg, OSM contributors');
+
+		var baseLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom: 17,opacity: 1}).addTo(map);
+
+		L.vectorGrid.protobuf("/tiles/subway-lightrail/orthorad/{z}/{x}/{y}.mvt", {
+		    vectorTileLayerStyles: {
+		    "lines": function(properties, zoom) {
+		        return {
+		            lineCap: properties.lineCap,
+		            weight: properties.width,
+		            color: '#' + properties.color
+		        }
+		    },
+		    "inner-connections": function(properties, zoom) {
+		        return {
+		            lineCap: properties.lineCap,
+		            weight: properties.width,
+		            color: '#' + properties.color
+		        }
+		    },
+		    "stations": function(properties, zoom) {
+		        return {
+		            lineCap: properties.lineCap,
+		            weight: properties.width,
+		            color: '#' + properties.color,
+		            fillColor: '#' + properties.fillColor,
+		            fillOpacity: 1,
+		            fill: true
+		        }
+		    },
+		}
+		}).addTo(map);
+    </script>
+  </body>
+</html>
