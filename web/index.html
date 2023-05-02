@@ -6,20 +6,20 @@
 	<meta name="author" content="Patrick Brosi, University of Freiburg, Chair of Algorithms and Datastructures ">
 	<meta name="contact" content="brosi[at]cs.uni-freiburg.de">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />	
+	<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
 	<script type="text/javascript"  src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
 	<script type="text/javascript"  src="https://unpkg.com/leaflet.vectorgrid@latest/dist/Leaflet.VectorGrid.js"></script>
 	<style>
-		 body {
+		body {
 		     font-size: 16px;
 		}
-		 #controls {
+		#controls {
 		     position: absolute;
 		     top: 20px;
 		     left: 50px;
 		     z-index: 1000;
 		}
-		 #stats {
+		#stats {
 		     position: absolute;
 		     bottom: 10px;
 		     right: 10px;
@@ -32,7 +32,7 @@
 		     border: 2px solid rgba(0,0,0,0.2);
 		     border-radius: 5px;
 		}
-		 select {
+		select {
 		     height: 3rem;
 		     border-radius: 5px;
 		     border: 2px solid rgba(0,0,0,0.2);
@@ -40,7 +40,7 @@
 		     background-color: white;
 		     margin-left: 20px;
 		}
-		 .linelabel {
+		.linelabel {
 		     font-weight: bold;
 		     font-size: 150%;
 		     padding: 5px;
@@ -49,7 +49,7 @@
 		     text-align: center;
 		     min-width: 26px;
 		}
-		 .stationlabel {
+		.stationlabel {
 		     font-weight: bold;
 		     font-size: 150%;
 		     padding: 5px;
@@ -58,9 +58,9 @@
 		     background-color: #0d0d8a;
 		     color: white;
 		}
-		 .leaflet-popup {
+		.leaflet-popup {
 		     font-size: 13px;
-		} 
+		}
 	</style>
 </head>
 <body style='margin:0'>
@@ -69,13 +69,13 @@
 	<div id="controls">
 		<select name="network" id="network">
         	<option value="tram">Tram</option>
-        	<option value="subway-lightrail">Subway/Lightrail</option>        	
+        	<option value="subway-lightrail">Subway/Lightrail</option>
         	<option value="rail-commuter">Rail (Commuter)</option>
         	<option value="rail">Rail (Long Distance)</option>
         </select>
         <select name="layout" id="layout">
         	<option value="geo">Geographical</option>
-        	<option value="octi">Octilinear</option>        	
+        	<option value="octi">Octilinear</option>
         	<option value="octi-geo">Geo-Octilinear</option>
         	<option value="orthorad">Orthoradial</option>
         </select>
@@ -103,7 +103,6 @@
 		        }
 
 		        if (clickedLayer) {
-		            // offending code used to be right here
 		            clickedLayer.fireEvent(e.type, this._map.layerPointToLatLng(this._map.mouseEventToLayerPoint(e)), true);
 		        }
 		    },
@@ -114,10 +113,12 @@
 
 		document.getElementById("network").onchange = function() {
 		    loadMap(document.getElementById("network").value, document.getElementById("layout").value)
+		    setHash(curNetwork + "/" + curLayout + "/" + map.getZoom() + "/" + map.getCenter().lat + "/" + map.getCenter().lng);
 		};
 
 		document.getElementById("layout").onchange = function() {
 		    loadMap(document.getElementById("network").value, document.getElementById("layout").value)
+		    setHash(curNetwork + "/" + curLayout + "/" + map.getZoom() + "/" + map.getCenter().lat + "/" + map.getCenter().lng);
 		};
 
 
@@ -136,7 +137,6 @@
 		        }
 		    },
 		    "inner-connections": function(properties, zoom) {
-		        //console.log(properties);
 		        return {
 		            lineCap: properties.lineCap,
 		            weight: properties.width,
@@ -146,7 +146,6 @@
 		        }
 		    },
 		    "stations": function(properties, zoom) {
-		        //console.log(properties);
 		        return {
 		            lineCap: properties.lineCap,
 		            weight: properties.width,
@@ -158,9 +157,6 @@
 		        }
 		    },
 		};
-
-
-
 
 		const map = L.map('map');
 		map.setView({
@@ -207,6 +203,7 @@
 
 
 		function loadMap(network, layout) {
+			if (network == curNetwork && layout == curLayout) return;
 		    document.getElementById('network').value = network;
 		    document.getElementById('layout').value = layout;
 
@@ -218,7 +215,6 @@
 		    if (layout == "orthorad") baseLayer.setOpacity(0.5);
 		    if (layout == "octi-geo") baseLayer.setOpacity(0.9);
 
-		    console.log("Loading", network, layout);
 		    if (curLayer) map.removeLayer(curLayer);
 		    curLayer = L.vectorGrid.protobuf("/tiles/" + network + "/" + layout + "/{z}/{x}/{y}.mvt", loomTileOptions);
 
@@ -236,7 +232,6 @@
 		    });
 
 		    curLayer.on("click", function(e) {
-		        console.log(e);
 		        var props = e.sourceTarget.properties;
 		        if (props["stationId"] !== undefined) {
 		            var popup = L.popup()
@@ -267,7 +262,7 @@
 		function updateStats() {
 		    loadStats(curNetwork, curLayout, map.getZoom()).then((stats) => {
 		        let html = "<table>";
-		        html += "<tr><th colspan=2><b><a target='_blank' href='/queries/" + curNetwork + ".sparql'>SPARQL Query</a></b></th></tr>"
+		        html += "<tr><th colspan=2><b><a id='sparqlquery' target='_blank' href='#'>SPARQL Query</a></b></th></tr>"
 		        html += "<tr><td>Query time</td><td>" + msToTime(stats["query"]["query-time"] * 1000) + "s</td></tr>"
 		        html += "<tr><td>Transfer time</td><td>" + msToTime(stats["query"]["transfer-time"] * 1000) + "s</td></tr>"
 
@@ -308,15 +303,31 @@
 
 		        html += "</table>";
 
-
-
 		        document.getElementById("stats").innerHTML = html;
+			}).then(() => {
+				loadSparqlQuery(curNetwork).then((sparql) => {
+					document.getElementById("sparqlquery").href = "https://qlever.cs.uni-freiburg.de/osm-planet/?query=" + encodeURIComponent(sparql);
+				});
+			});
+		}
+
+		function loadSparqlQuery(network) {
+		    return new Promise((res, rej) => {
+		        var xhr = new XMLHttpRequest();
+		        xhr.open('GET', "../queries/" + network + ".sparql");
+		        xhr.onload = function() {
+		            if (xhr.status !== 200) {
+		                rej({});
+		                return;
+		            }
+		            var sparql = xhr.response;
+					if (network == curNetwork) res(sparql);
+		        };
+		        xhr.send();
 		    });
 		}
 
 		function loadStats(network, layout, zoom) {
-		    console.log("Loading stats", network, layout, zoom);
-
 		    return new Promise((res, rej) => {
 		        var xhr = new XMLHttpRequest();
 		        xhr.open('GET', "../stats/" + network + "/" + zoom + "/" + layout + ".stats.json");
@@ -328,7 +339,7 @@
 		                return;
 		            }
 		            var geojson = xhr.response;
-		            res(geojson);
+					if (network == curNetwork && layout == curLayout && map.getZoom() == zoom) res(geojson);
 		        };
 		        xhr.send();
 		    });
@@ -365,10 +376,8 @@
 		    this.location.hash = h;
 		}
 
-
 		loadMap("subway-lightrail", "geo");
 		parseHash(this.location.hash);
-
 	</script>
 </body>
 </html>
