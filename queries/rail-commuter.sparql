@@ -20,7 +20,7 @@ SELECT ?color ?id ?label ?station_label ?station_id ?geom WHERE {
 	  ?osm_id geo:hasGeometry ?geom .
 	  { ?osm_id osmkey:public_transport "stop_position" } UNION { ?osm_id osmkey:public_transport "station" } .
 	  ?osm_id osmkey:name ?station_label .
-	  { ?osm_id osmkey:railway "station" } UNION { ?osm_id osmkey:light_rail "yes" }.
+	  { ?osm_id osmkey:train "yes" } UNION { ?osm_id osmkey:railway "stop" } UNION { ?osm_id osmkey:railway "station" } UNION { ?osm_id osmkey:light_rail "yes" }.
   } UNION {
 	  {?rel osmkey:route "railway"} UNION {?rel osmkey:route "train" } .
 	  ?rel osmrel:member ?mem .
