@@ -6,9 +6,9 @@
 	<meta name="author" content="Patrick Brosi, University of Freiburg, Chair of Algorithms and Datastructures ">
 	<meta name="contact" content="brosi[at]cs.uni-freiburg.de">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
-	<script type="text/javascript"  src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
-	<script type="text/javascript"  src="https://unpkg.com/leaflet.vectorgrid@latest/dist/Leaflet.VectorGrid.js"></script>
+	<link rel="stylesheet" href="leaflet.css" />
+	<script type="text/javascript"  src="leaflet.js"></script>
+	<script type="text/javascript"  src="Leaflet.VectorGrid.js"></script>
 	<style>
 		body {
 		     font-size: 16px;
@@ -20,17 +20,40 @@
 		     z-index: 1000;
 		}
 		#stats {
+			 min-width: 200px;
 		     position: absolute;
-		     bottom: 10px;
-		     right: 10px;
+		     bottom: 40px;
+		     right: 20px;
 		     z-index: 1000;
 		     background-color: white;
 		     opacity: 0.9;
 		     font-family: sans-serif;
-		     font-size: 80%;
+		     font-size: 75%;
 		     padding: 10px;
 		     border: 2px solid rgba(0,0,0,0.2);
 		     border-radius: 5px;
+			 max-height: 50vh;
+			 overflow-y: auto;
+		}
+		#stats h3{
+			margin: 2px;
+			display: block;
+			float: left;
+		}
+		#stats button{
+			float: right;
+		}
+		#stats.hidden,
+		#stats #openstats,
+		#stats.closed #closestats,
+		#stats.closed table {
+			display: none;
+		}
+		#stats.closed #openstats {
+			display: block;
+		}
+		#stats table {
+			clear: both;
 		}
 		select {
 		     height: 3rem;
@@ -61,6 +84,13 @@
 		.leaflet-popup {
 		     font-size: 13px;
 		}
+		@media (max-width: 500px) {
+			select {
+				font-size: 90%;
+				height: 2.5rem;
+				margin-left: 10px;
+			}
+		}
 	</style>
 </head>
 <body style='margin:0'>
@@ -81,23 +111,26 @@
         </select>
 	</div>
 
-	<div id="stats">
+	<div id="stats" class="hidden">
+		<h3>Statistics</h3>
+		<button id="openstats" onclick="document.getElementById('stats').className = ''">▲</button>
+		<button id="closestats" onclick="document.getElementById('stats').className = 'closed'">▼</button>
+		<div id="stats-inner">
+		</div>
 	</div>
 
 	<script>		// see https://github.com/Leaflet/Leaflet.VectorGrid/issues/148#issuecomment-1371642250
 		L.Canvas.Tile.include({
 		    _onClick: function(e) {
-		        var point = this._map.mouseEventToLayerPoint(e).subtract(this.getOffset());
-		        var layer;
-		        var clickedLayer;
+		        const point = this._map.mouseEventToLayerPoint(e).subtract(this.getOffset());
+		        let layer;
+		        let clickedLayer;
 
-		        for (var id in this._layers) {
+		        for (let id in this._layers) {
 		            layer = this._layers[id];
-		            if (
-		                layer.options.interactive &&
+		            if (layer.options.interactive &&
 		                layer._containsPoint(point) &&
-		                !this._map._draggableMoved(layer)
-		            ) {
+		                !this._map._draggableMoved(layer)) {
 		                clickedLayer = layer;
 		            }
 		        }
@@ -122,9 +155,9 @@
 		};
 
 
-		var comps = new Set();
-		var curNetwork;
-		var curLayout;
+		let comps = new Set();
+		let curNetwork;
+		let curLayout;
 
 		const loomStyles = {
 		    lines: function(properties, zoom) {
@@ -158,14 +191,14 @@
 		    },
 		};
 
-		const map = L.map('map');
+		const map = L.map('map', {zoomDelta: 1, wheelPxPerZoomLevel: 80, worldCopyJump : true});
 		map.setView({
 		    lat: 48.78475612895581,
 		    lng: 9.204311370849611
 		}, 13);
-		map.attributionControl.setPrefix('University of Freiburg, Chair of Algorithms and Data Structures');
+		map.attributionControl.setPrefix('<a href="../tiles">Tiles</a> | University of Freiburg, Chair of Algorithms and Data Structures');
 
-		var baseLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+		let baseLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
 		    attribution: '&copy; <a rel="noreferrer" target="_blank" href="#">OpenStreetMap</a>',
 		    maxZoom: 17,
 		    opacity: 1
@@ -189,7 +222,7 @@
 		});
 
 		function msToTime(duration) {
-		    var milliseconds = Math.floor((duration % 1000) / 100),
+		    let milliseconds = Math.floor((duration % 1000) / 100),
 		        seconds = Math.floor((duration / 1000) % 60),
 		        minutes = Math.floor((duration / (1000 * 60)) % 60),
 		        hours = Math.floor((duration / (1000 * 60 * 60)) % 24);
@@ -220,10 +253,10 @@
 
 		    curLayer.on("load", function(e) {
 		        comps = new Set();
-		        for (var tileKey in this._vectorTiles) {
-		            var tile = this._vectorTiles[tileKey];
-		            for (var fid in tile._features) {
-		                var l = tile._features[fid];
+		        for (let tileKey in this._vectorTiles) {
+		            const tile = this._vectorTiles[tileKey];
+		            for (let fid in tile._features) {
+		                const l = tile._features[fid];
 		                if (l.layerName == "lines" && l.feature.properties["component"]) {
 		                    comps.add(l.feature.properties["component"]);
 		                }
@@ -232,9 +265,9 @@
 		    });
 
 		    curLayer.on("click", function(e) {
-		        var props = e.sourceTarget.properties;
+		        const props = e.sourceTarget.properties;
 		        if (props["stationId"] !== undefined) {
-		            var popup = L.popup()
+		            const popup = L.popup()
 		                .setLatLng({
 		                    lat: e.lat,
 		                    lng: e.lng
@@ -242,7 +275,7 @@
 		                .setContent("<div class='stationlabel'>" + props["stationLabel"] + "</div><br><br><a href='/components/" + network + "/" + map.getZoom() + "/component-" + props["component"] + ".json" + "' download >Download network GeoJSON</a>")
 		                .openOn(map);
 		        } else {
-		            var popup = L.popup()
+		            const popup = L.popup()
 		                .setLatLng({
 		                    lat: e.lat,
 		                    lng: e.lng
@@ -253,7 +286,7 @@
 		    });
 		    curLayer.addTo(map);
 
-		    document.getElementById("stats").innerHTML = "";
+		    document.getElementById("stats-inner").innerHTML = "";
 
 		    updateStats();
 
@@ -303,7 +336,8 @@
 
 		        html += "</table>";
 
-		        document.getElementById("stats").innerHTML = html;
+		        document.getElementById("stats-inner").innerHTML = html;
+		        document.getElementById("stats").className = "closed";
 			}).then(() => {
 				loadSparqlQuery(curNetwork).then((sparql) => {
 					document.getElementById("sparqlquery").href = "https://qlever.cs.uni-freiburg.de/osm-planet/?query=" + encodeURIComponent(sparql);
@@ -313,15 +347,14 @@
 
 		function loadSparqlQuery(network) {
 		    return new Promise((res, rej) => {
-		        var xhr = new XMLHttpRequest();
+		        const xhr = new XMLHttpRequest();
 		        xhr.open('GET', "../queries/" + network + ".sparql");
 		        xhr.onload = function() {
 		            if (xhr.status !== 200) {
 		                rej({});
 		                return;
 		            }
-		            var sparql = xhr.response;
-					if (network == curNetwork) res(sparql);
+					if (network == curNetwork) res(xhr.response);
 		        };
 		        xhr.send();
 		    });
