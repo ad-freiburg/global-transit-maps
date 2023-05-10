@@ -11,7 +11,7 @@ The tiles can be inspected using the web application in `web`.
 
 An example installation is available at [https://loom.cs.uni-freiburg.de/global](https://loom.cs.uni-freiburg.de/global).
 
-All tiles are available for free at [https://loom.cs.uni-freiburg.de/global](https://loom.cs.uni-freiburg.de/tiles).
+All tiles are available for free at [https://loom.cs.uni-freiburg.de/tiles](https://loom.cs.uni-freiburg.de/tiles).
 
 Currently, 4 networks are supported: `tram`, `subway-lightrail`, `rail-commuter`, and `rail`.
 
