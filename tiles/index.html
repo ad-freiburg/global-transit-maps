@@ -1,21 +1,17 @@
-
 <!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <meta name="description" content="We provide weekly updated RDF triples in the .ttl format for the entire OpenStreetMap data, as well as extracts for individual continents and countries.">
-    <meta name="author" content="(C) 2021-2023 University of Freiburg, Chair of Algorithms and Datastructures">
+    <meta name="description" content="We provide free and weekly updated vector tiles for transit maps generated from the entire OpenStreetMap data, in various layouts.">
+    <meta name="author" content="(C) 2023 University of Freiburg, Chair of Algorithms and Datastructures">
     <meta name="contact" content="brosi[at]cs.uni-freiburg.de">
     <meta name="viewport" content="initial-scale=1">
-    <meta property="og:title" content="OpenStreetMap RDF Turtle (TTL) Extracts">
-    <meta property="og:image" content="/ttl.png">
-    <meta property="og:description" content="We provide weekly updated RDF triples in the .ttl format for the entire OpenStreetMap data, as well as extracts for individual continents and countries.">
-    <link rel="icon" href="favicon.ico">
-
-	<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />	
-	<script type="text/javascript"  src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
-	<script type="text/javascript"  src="https://unpkg.com/leaflet.vectorgrid@latest/dist/Leaflet.VectorGrid.js"></script>
+    <meta property="og:title" content="Transit Vector Tile Service">
+    <meta property="og:description" content="We provide free and weekly updated vector tiles for transit maps generated from the entire OpenStreetMap data, in various layouts.">
+	<link rel="stylesheet" href="leaflet.css"/>
+	<script type="text/javascript"  src="leaflet.js"></script>
+	<script type="text/javascript"  src="Leaflet.VectorGrid.js"></script>
 
     <title>Transit Vector Tile Service</title>
 
@@ -78,7 +74,7 @@
         margin-left: auto
       }
 
-      #map {      	
+      #map {
         background:#eee;
         padding: 0;
         margin-bottom: 2rem;
@@ -89,7 +85,7 @@
         color: #fff!important
       }
 
-       #code {      	
+       #code {
        	display: none;
         background:#eee;
         padding: 10px;
@@ -100,7 +96,7 @@
         border-radius: .25rem!important;
         color: #black;
         font-size: 12px;
-        overflow: auto;
+        overflow: auto
       }
 
       #map-ctn {
@@ -178,10 +174,10 @@
         }
       }
 
-		th, td {
-		  padding: 5px;
-		  padding-right:10px;
-		}
+	  th, td {
+        padding: 5px;
+        padding-right:10px;
+      }
 
       footer {
         padding: 2.5rem 0;
@@ -214,13 +210,13 @@
       #list {
         width: 59%;
         float: left;
-        margin: 0.5%; 
+        margin: 0.5%;
       }
 
       #ttlmap {
         width: 38%;
         float: left;
-        margin: 0.5%; 
+        margin: 0.5%;
         position:  fixed;
         right:  0;
         margin-right:  1.5%;
@@ -266,7 +262,7 @@
         	  <table>
         	  	<tr>
         	  		<th>URL</th>
-        	  		<th>Description</th>        	  		
+        	  		<th>Description</th>
         	  		<th>Layout</th>
         	  	</tr>
         	  	<tr>

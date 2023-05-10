@@ -9,25 +9,20 @@ SELECT ?color ?id ?label ?station_label ?station_id ?geom WHERE {
   {
 	  {?rel osmkey:route "railway"} UNION {?rel osmkey:route "train" } .
 	  ?rel osmrel:member ?mem .
-	  {?rel osmkey:service "long_distance"} UNION {?rel osmkey:service "high_speed" } UNION {?rel osmkey:highspeed "yes" } .
+	  {?rel osmkey:service "night"} UNION {?rel osmkey:service "national"} UNION {?rel osmkey:service "long_distance"} UNION {?rel osmkey:service "high_speed" } UNION {?rel osmkey:highspeed "yes" } .
 	  OPTIONAL {?rel osmkey:colour ?color} .
 	  OPTIONAL {?rel osmkey:colour ?id} .
-	  ?rel osmkey:ref ?label .
+	  OPTIONAL {?rel osmkey:ref ?label} .
 	  ?mem osm:id ?osm_id .
 	  ?osm_id geo:hasGeometry ?geom .
 	  { ?osm_id osmkey:railway "rail" } UNION { ?osm_id osmkey:railway "light_rail" }.
   } UNION {
-	  ?osm_id geo:hasGeometry ?geom .
-	  { ?osm_id osmkey:public_transport "stop_position" } UNION { ?osm_id osmkey:public_transport "station" } .
-	  ?osm_id osmkey:name ?station_label .
-	  { ?osm_id osmkey:train "yes" } UNION { ?osm_id osmkey:railway "stop" } UNION { ?osm_id osmkey:railway "station" } UNION { ?osm_id osmkey:light_rail "yes" }.
-  } UNION {
 	  {?rel osmkey:route "railway"} UNION {?rel osmkey:route "train" } .
 	  ?rel osmrel:member ?mem .
-	  {?rel osmkey:service "long_distance"} UNION {?rel osmkey:service "high_speed" } UNION {?rel osmkey:highspeed "yes" } .
+	  {?rel osmkey:service "night"} UNION {?rel osmkey:service "national"} UNION {?rel osmkey:service "long_distance"} UNION {?rel osmkey:service "high_speed" } UNION {?rel osmkey:highspeed "yes" } .
 	  ?mem osm:id ?osm_id .
 	  ?osm_id geo:hasGeometry ?geom .
-	  { ?osm_id osmkey:public_transport "stop_position" } UNION { ?osm_id osmkey:public_transport "station" } .
+	  { ?osm_id osmkey:public_transport "stop_position" } UNION { ?osm_id osmkey:public_transport "station" } UNION { ?osm_id osmkey:railway "station" } .
 	  ?osm_id osmkey:name ?station_label .
   }
 }

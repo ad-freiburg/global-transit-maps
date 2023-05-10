@@ -1,14 +1,15 @@
 <!DOCTYPE html>
 <html>
 <head>
-	<title>LOOM Vector Tiles</title>
+	<title>LOOM Global Transit Maps</title>
 	<meta charset="utf-8" />
 	<meta name="author" content="Patrick Brosi, University of Freiburg, Chair of Algorithms and Datastructures ">
 	<meta name="contact" content="brosi[at]cs.uni-freiburg.de">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta property="og:title" content="LOOM Global Transit Maps">
 	<link rel="stylesheet" href="leaflet.css" />
-	<script type="text/javascript"  src="leaflet.js"></script>
-	<script type="text/javascript"  src="Leaflet.VectorGrid.js"></script>
+	<script type="text/javascript" src="leaflet.js"></script>
+	<script type="text/javascript" src="Leaflet.VectorGrid.js"></script>
 	<style>
 		body {
 		     font-size: 16px;
@@ -119,7 +120,8 @@
 		</div>
 	</div>
 
-	<script>		// see https://github.com/Leaflet/Leaflet.VectorGrid/issues/148#issuecomment-1371642250
+	<script>
+		// see https://github.com/Leaflet/Leaflet.VectorGrid/issues/148#issuecomment-1371642250
 		L.Canvas.Tile.include({
 		    _onClick: function(e) {
 		        const point = this._map.mouseEventToLayerPoint(e).subtract(this.getOffset());
@@ -266,6 +268,7 @@
 
 		    curLayer.on("click", function(e) {
 		        const props = e.sourceTarget.properties;
+				console.log(e.sourceTarget);
 		        if (props["stationId"] !== undefined) {
 		            const popup = L.popup()
 		                .setLatLng({
@@ -280,7 +283,7 @@
 		                    lat: e.lat,
 		                    lng: e.lng
 		                })
-		                .setContent("<div class='linelabel' style='color:white;background-color:#" + props["color"] + "'>" + props["line"] + "</div><br><br><a href='/components/" + network + "/" + map.getZoom() + "/component-" + props["component"] + ".json" + "' download>Download network GeoJSON</a>")
+		                .setContent("<div class='linelabel' style='color:white;background-color:#" + (props["line-color"] || props["color"]) + "'>" + props["line"] + "</div><br><br><a href='/components/" + network + "/" + map.getZoom() + "/component-" + props["component"] + ".json" + "' download>Download network GeoJSON</a>")
 		                .openOn(map);
 		        }
 		    });
@@ -362,7 +365,7 @@
 
 		function loadStats(network, layout, zoom) {
 		    return new Promise((res, rej) => {
-		        var xhr = new XMLHttpRequest();
+		        const xhr = new XMLHttpRequest();
 		        xhr.open('GET', "../stats/" + network + "/" + zoom + "/" + layout + ".stats.json");
 		        xhr.setRequestHeader('Content-Type', 'application/json');
 		        xhr.responseType = 'json';
@@ -371,7 +374,7 @@
 		                rej({});
 		                return;
 		            }
-		            var geojson = xhr.response;
+		            const geojson = xhr.response;
 					if (network == curNetwork && layout == curLayout && map.getZoom() == zoom) res(geojson);
 		        };
 		        xhr.send();
@@ -380,7 +383,7 @@
 
 		function parseHash(h) {
 		    h = h.substring(1);
-		    var parts = h.split("/");
+		    const parts = h.split("/");
 
 		    if (parts.length == 5) {
 		        network = parts[0];
