@@ -275,7 +275,7 @@
 		                    lat: e.lat,
 		                    lng: e.lng
 		                })
-		                .setContent("<div class='stationlabel'>" + props["stationLabel"] + "</div><br><br><a href='/components/" + network + "/" + map.getZoom() + "/component-" + props["component"] + ".json" + "' download >Download network GeoJSON</a>")
+		                .setContent("<div class='stationlabel'>" + props["stationLabel"] + "</div><br><br><a href='/components/" + network + "/" + (layout == "geo" ? map.getZoom() : 15) + "/component-" + props["component"] + ".json" + "' download >Download network GeoJSON</a>")
 		                .openOn(map);
 		        } else {
 		            const popup = L.popup()
@@ -283,7 +283,7 @@
 		                    lat: e.lat,
 		                    lng: e.lng
 		                })
-		                .setContent("<div class='linelabel' style='color:white;background-color:#" + (props["line-color"] || props["color"]) + "'>" + props["line"] + "</div><br><br><a href='/components/" + network + "/" + map.getZoom() + "/component-" + props["component"] + ".json" + "' download>Download network GeoJSON</a>")
+		                .setContent("<div class='linelabel' style='color:white;background-color:#" + (props["line-color"] || props["color"]) + "'>" + props["line"] + "</div><br><br><a href='/components/" + network + "/" + (layout == "geo" ? map.getZoom() : 15) + "/component-" + props["component"] + ".json" + "' download>Download network GeoJSON</a>")
 		                .openOn(map);
 		        }
 		    });
