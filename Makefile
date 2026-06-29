@@ -23,11 +23,17 @@ RAILSTATS_OCTI = $(patsubst %,stats/rail/%/octi.stats.json, 17 16 15 14 13 12 11
 RAILSTATS_OCTIGEO = $(patsubst %,stats/rail/%/octi-geo.stats.json, 17 16 15 14 13 12 11 10 9 8 7 6 5 4 3 2 1 0)
 RAILSTATS_ORTHORAD = $(patsubst %,stats/rail/%/orthorad.stats.json, 17 16 15 14 13 12 11 10 9 8 7 6 5 4 3 2 1 0)
 
-all: tram subway-lightrail rail-commuter rail
+RAIL_NIGHTSTATS_GEO = $(patsubst %,stats/rail-night/%/geo.stats.json, 17 16 15 14 13 12 11 10 9 8 7 6 5 4 3 2 1 0)
+RAIL_NIGHTSTATS_OCTI = $(patsubst %,stats/rail-night/%/octi.stats.json, 17 16 15 14 13 12 11 10 9 8 7 6 5 4 3 2 1 0)
+RAIL_NIGHTSTATS_OCTIGEO = $(patsubst %,stats/rail-night/%/octi-geo.stats.json, 17 16 15 14 13 12 11 10 9 8 7 6 5 4 3 2 1 0)
+RAIL_NIGHTSTATS_ORTHORAD = $(patsubst %,stats/rail-night/%/orthorad.stats.json, 17 16 15 14 13 12 11 10 9 8 7 6 5 4 3 2 1 0)
+
+all: tram subway-lightrail rail-commuter rail rail-night
 
 tram: $(TRAMSTATS_GEO) $(TRAMSTATS_OCTI) $(TRAMSTATS_OCTIGEO) $(TRAMSTATS_ORTHORAD)
 subway-lightrail: $(SUBWAY_LIGHTRAILSTATS_GEO) $(SUBWAY_LIGHTRAILSTATS_OCTI) $(SUBWAY_LIGHTRAILSTATS_OCTIGEO) $(SUBWAY_LIGHTRAILSTATS_ORTHORAD)
 rail-commuter: $(RAIL_COMMUTERSTATS_GEO) $(RAIL_COMMUTERSTATS_OCTI) $(RAIL_COMMUTERSTATS_OCTIGEO) $(RAIL_COMMUTERSTATS_ORTHORAD)
+rail-night: $(RAIL_NIGHTSTATS_GEO) $(RAIL_NIGHTSTATS_OCTI) $(RAIL_NIGHTSTATS_OCTIGEO) $(RAIL_NIGHTSTATS_ORTHORAD)
 rail: $(RAILSTATS_GEO) $(RAILSTATS_OCTI) $(RAILSTATS_OCTIGEO) $(RAILSTATS_ORTHORAD)
 
 
@@ -41,12 +47,12 @@ stats/%/query.stats.json: %.json
 	mkdir -p stats/$*
 	echo "{\"query-time\":" > stats/$*/query.stats.json
 	@# get qid
-	/usr/bin/time --format="%e" bash -c 'curl -s -G --data-urlencode "backend=https://qlever.cs.uni-freiburg.de/api/osm-planet"   --data-urlencode "query@$<" "https://qlever.cs.uni-freiburg.de/mapui-petri/query" > response.json' 2>> stats/$*/query.stats.json
+	/usr/bin/time --format="%e" bash -c 'curl -s -G --data-urlencode "backend=https://qlever.cs.uni-freiburg.de/api/osm-planet"   --data-urlencode "query@$<" "https://qlever.cs.uni-freiburg.de/mapui-petri/query" > response-$*.json' 2>> stats/$*/query.stats.json
 
 	@# download GeoJSON export
 	echo ",\"transfer-time\": " >> stats/$*/query.stats.json
-	/usr/bin/time --format="%e" bash -c 'curl -s -G --data "id=`jq .qid response.json | tr -d '\''\"'\''`" "https://qlever.cs.uni-freiburg.de/mapui-petri/export" > $@' 2>> stats/$*/query.stats.json
-	rm response.json
+	/usr/bin/time --format="%e" bash -c 'curl -s -G --data "id=`jq .qid response-$*.json | tr -d '\''\"'\''`" "https://qlever.cs.uni-freiburg.de/mapui-petri/export" > $@' 2>> stats/$*/query.stats.json
+	rm response-$*.json
 	echo "}" >> stats/$*/query.stats.json
 
 %.inputstats.json: %.json
@@ -54,11 +60,22 @@ stats/%/query.stats.json: %.json
 
 # TOPO
 # ============
+#
+rail-night.15.topo.json: rail-night.json
+	mkdir -p components/rail-night/15
+	$(TOPO) --max-comp-dist 1000 --sample-dist 10 --write-components --write-components-path components/rail-night/15 -d 100 --infer-restr-max-dist 400 --turn-restr-full-turn-angle 90 < $< > tmp-rail-night-15.json
+	$(TOPO) --max-comp-dist 1000 --sample-dist 10 --write-components --smooth 60 --write-components-path components/rail-night/15 -d 250 --aggr-stats --infer-restr-max-dist 400  --turn-restr-full-turn-angle 90  < tmp-rail-night-15.json > $@
+	rm tmp-rail-night-15.json
+
+rail-night.%.topo.json: rail-night.15.topo.json
+	ln -s $< $@
+	ln -s 15 components/rail-night/$*
 
 rail.15.topo.json: rail.json
 	mkdir -p components/rail/15
-	$(TOPO) --max-comp-dist 1000 --sample-dist 10 --write-components --write-components-path components/rail/15 -d 100 --infer-restr-max-dist 400 --turn-restr-full-turn-angle 90 < $< > tmp.json
-	$(TOPO) --max-comp-dist 1000 --sample-dist 10 --write-components --smooth 60 --write-components-path components/rail/15 -d 200 --infer-restr-max-dist 400  --turn-restr-full-turn-angle 90  < tmp.json > $@
+	$(TOPO) --max-comp-dist 1000 --sample-dist 10 --write-components --write-components-path components/rail/15 -d 100 --infer-restr-max-dist 400 --turn-restr-full-turn-angle 90 < $< > tmp-rail-15.json
+	$(TOPO) --max-comp-dist 1000 --sample-dist 10 --write-components --smooth 60 --write-components-path components/rail/15 -d 250 --aggr-stats --infer-restr-max-dist 400  --turn-restr-full-turn-angle 90  < tmp-rail-15.json > $@
+	rm tmp-rail-15.json
 
 rail.%.topo.json: rail.15.topo.json
 	ln -s $< $@
@@ -66,8 +83,9 @@ rail.%.topo.json: rail.15.topo.json
 
 rail-commuter.15.topo.json: rail-commuter.json
 	mkdir -p components/rail-commuter/15
-	$(TOPO) --write-components --write-components-path components/rail-commuter/15 -d 100 --infer-restr-max-dist 400 --turn-restr-full-turn-angle 90 < $< > tmp.json
-	$(TOPO) --write-components --write-components-path components/rail-commuter/15 --smooth 60 -d 200 --infer-restr-max-dist 400 --turn-restr-full-turn-angle 90 < tmp.json > $@
+	$(TOPO) --write-components --write-components-path components/rail-commuter/15 -d 100 --infer-restr-max-dist 400 --turn-restr-full-turn-angle 90 < $< > tmp-rail-commuter-15.json
+	$(TOPO) --write-components --write-components-path components/rail-commuter/15 --smooth 60 -d 250 --infer-restr-max-dist 400 --aggr-stats --turn-restr-full-turn-angle 90 < tmp-rail-commuter-15.json > $@
+	rm tmp-rail-commuter-15.json
 
 rail-commuter.%.topo.json: rail-commuter.15.topo.json
 	ln -s $< $@
@@ -99,7 +117,7 @@ rail-commuter.%.topo.json: rail-commuter.15.topo.json
 
 %.14.topo.json: %.15.topo.json
 	mkdir -p components/$*/14
-	$(TOPO)  --write-components --write-components-path components/$*/14 --smooth 2 -d 200  --turn-restr-full-turn-angle 45 < $< > $@
+	$(TOPO)  --write-components --write-components-path components/$*/14 --smooth 2 -d 200  --turn-restr-full-turn-angle 45 --aggr-stats < $< > $@
 
 .SECONDEXPANSION:
 %.topo.json: $$(firstword $$(subst ., , $$*)).14.topo.json | dummy%
@@ -191,432 +209,432 @@ dummy%:
 .SECONDEXPANSION:
 tiles/%/geo/20: %.20.geo.json
 	mkdir -p $@
-	$(TRANSITMAP) --render-engine mvt --line-width=4 --line-spacing=3 -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/geo < $< > $@/stats.json
+	$(TRANSITMAP) --render-engine mvt --line-width=4 --line-spacing=1 -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/geo < $< > $@/stats.json
 
 .SECONDEXPANSION:
 tiles/%/geo/19: %.19.geo.json
 	mkdir -p $@
-	$(TRANSITMAP) --render-engine mvt --line-width=4 --line-spacing=3 -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/geo < $< > $@/stats.json
+	$(TRANSITMAP) --render-engine mvt --line-width=4 --line-spacing=1 -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/geo < $< > $@/stats.json
 
 .SECONDEXPANSION:
 tiles/%/geo/18: %.15.geo.json
 	mkdir -p $@
-	$(TRANSITMAP) --render-engine mvt --line-width=4 --line-spacing=3 -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/geo < $< > $@/stats.json
+	$(TRANSITMAP) --render-engine mvt --line-width=4 --line-spacing=1 -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/geo < $< > $@/stats.json
 
 .SECONDEXPANSION:
 tiles/%/geo/17: %.15.geo.json
 	mkdir -p $@
-	$(TRANSITMAP) --render-engine mvt --line-width=4 --line-spacing=3 -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/geo < $< > $@/stats.json
+	$(TRANSITMAP) --render-engine mvt --line-width=4 --line-spacing=1 -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/geo < $< > $@/stats.json
 
 .SECONDEXPANSION:
 tiles/%/geo/16: %.15.geo.json
 	mkdir -p $@
-	$(TRANSITMAP) --render-engine mvt --line-width=4 --line-spacing=3 -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/geo < $< > $@/stats.json
+	$(TRANSITMAP) --render-engine mvt --line-width=4 --line-spacing=1 -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/geo < $< > $@/stats.json
 
 .SECONDEXPANSION:
 tiles/%/geo/15: %.15.geo.json
 	mkdir -p $@
-	$(TRANSITMAP) --render-engine mvt --line-width=4 --line-spacing=3 -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/geo < $< > $@/stats.json
+	$(TRANSITMAP) --render-engine mvt --line-width=4 --line-spacing=1 -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/geo < $< > $@/stats.json
 
 .SECONDEXPANSION:
 tiles/%/geo/14: %.14.geo.json
 	mkdir -p $@
-	$(TRANSITMAP) --render-engine mvt --line-width=3 --line-spacing=2 -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/geo < $< > $@/stats.json
+	$(TRANSITMAP) --render-engine mvt --line-width=3 --line-spacing=0 -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/geo < $< > $@/stats.json
 
 .SECONDEXPANSION:
 tiles/%/geo/13: %.14.geo.json
 	mkdir -p $@
-	$(TRANSITMAP) --render-engine mvt --line-width=3 --line-spacing=1 -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/geo < $< > $@/stats.json
+	$(TRANSITMAP) --render-engine mvt --line-width=3 --line-spacing=-1 -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/geo < $< > $@/stats.json
 
 .SECONDEXPANSION:
 tiles/%/geo/12: %.14.geo.json
 	mkdir -p $@
-	$(TRANSITMAP) --render-engine mvt --line-width=2 --line-spacing=1 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/geo < $< > $@/stats.json
+	$(TRANSITMAP) --render-engine mvt --line-width=2 --line-spacing=-1 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/geo < $< > $@/stats.json
 
 .SECONDEXPANSION:
 tiles/%/geo/11: %.14.geo.json
 	mkdir -p $@
-	$(TRANSITMAP) --render-engine mvt --line-width=1 --line-spacing=1 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/geo < $< > $@/stats.json
+	$(TRANSITMAP) --render-engine mvt --line-width=1 --line-spacing=-1 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/geo < $< > $@/stats.json
 
 .SECONDEXPANSION:
 tiles/%/geo/10: %.14.geo.json
 	mkdir -p $@
-	$(TRANSITMAP) --render-engine mvt --line-width=1 --line-spacing=0 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/geo < $< > $@/stats.json
+	$(TRANSITMAP) --render-engine mvt --line-width=1 --line-spacing=-1 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/geo < $< > $@/stats.json
 
 .SECONDEXPANSION:
 tiles/%/geo/9: %.14.geo.json
 	mkdir -p $@
-	$(TRANSITMAP) --render-engine mvt --line-width=1 --line-spacing=0  g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/geo < $< > $@/stats.json
+	$(TRANSITMAP) --render-engine mvt --line-width=1 --outline-width=1 --line-spacing=-0.9 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/geo < $< > $@/stats.json
 
 .SECONDEXPANSION:
 tiles/%/geo/8: %.14.geo.json
 	mkdir -p $@
-	$(TRANSITMAP) --render-engine mvt --line-width=1 --line-spacing=0 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/geo < $< > $@/stats.json
+	$(TRANSITMAP) --render-engine mvt --line-width=1 --outline-width=0.75 --line-spacing=-1.4 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/geo < $< > $@/stats.json
 
 .SECONDEXPANSION:
 tiles/%/geo/7: %.14.geo.json
 	mkdir -p $@
-	$(TRANSITMAP) --render-engine mvt --line-width=1 --line-spacing=0 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/geo < $< > $@/stats.json
+	$(TRANSITMAP) --render-engine mvt --line-width=1 --outline-width=0.5 --line-spacing=-0.9 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/geo < $< > $@/stats.json
 
 .SECONDEXPANSION:
 tiles/%/geo/6: %.14.geo.json
 	mkdir -p $@
-	$(TRANSITMAP) --render-engine mvt --line-width=1 --line-spacing=0 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/geo < $< > $@/stats.json
+	$(TRANSITMAP) --render-engine mvt --line-width=0.75 --outline-width=0.3 --line-spacing=-0.6 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/geo < $< > $@/stats.json
 
 .SECONDEXPANSION:
 tiles/%/geo/5: %.14.geo.json
 	mkdir -p $@
-	$(TRANSITMAP) --render-engine mvt --line-width=1 --line-spacing=0 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/geo < $< > $@/stats.json
+	$(TRANSITMAP) --render-engine mvt --line-width=0.6 --outline-width=0.25 --line-spacing=-0.55 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/geo < $< > $@/stats.json
 
 .SECONDEXPANSION:
 tiles/%/geo/4: %.14.geo.json
 	mkdir -p $@
-	$(TRANSITMAP) --render-engine mvt --line-width=1 --line-spacing=0 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/geo < $< > $@/stats.json
+	$(TRANSITMAP) --no-render-stations --render-engine mvt --line-width=0.4 --outline-width=0.25 --line-spacing=-0.55 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/geo < $< > $@/stats.json
 
 .SECONDEXPANSION:
 tiles/%/geo/3: %.14.geo.json
 	mkdir -p $@
-	$(TRANSITMAP) --render-engine mvt --line-width=1 --line-spacing=0 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/geo < $< > $@/stats.json
+	$(TRANSITMAP) --no-render-stations --render-engine mvt --line-width=0 --outline-width=0.3 --line-spacing=0 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/geo < $< > $@/stats.json
 
 .SECONDEXPANSION:
 tiles/%/geo/2: %.14.geo.json
 	mkdir -p $@
-	$(TRANSITMAP) --render-engine mvt --line-width=1 --line-spacing=0 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/geo < $< > $@/stats.json
+	$(TRANSITMAP) --no-render-stations --render-engine mvt --line-width=0 --outline-width=0.3 --line-spacing=0 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/geo < $< > $@/stats.json
 
 .SECONDEXPANSION:
 tiles/%/geo/1: %.14.geo.json
 	mkdir -p $@
-	$(TRANSITMAP) --render-engine mvt --line-width=1 --line-spacing=0 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/geo < $< > $@/stats.json
+	$(TRANSITMAP) --render-engine mvt --line-width=0 --outline-width=0.3 --line-spacing=0 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/geo < $< > $@/stats.json
 
 .SECONDEXPANSION:
 tiles/%/geo/0: %.14.geo.json
 	mkdir -p $@
-	$(TRANSITMAP) --render-engine mvt --line-width=1 --line-spacing=0 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/geo < $< > $@/stats.json
+	$(TRANSITMAP) --render-engine mvt --line-width=0 --outline-width=0.3 --line-spacing=0 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/geo < $< > $@/stats.json
 ##########
 
 .SECONDEXPANSION:
 tiles/%/octi/20: %.14.octi.loom.json
 	mkdir -p $@
-	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=5 --line-spacing=2 -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/octi < $< > $@/stats.json
+	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=5 --line-spacing=1 -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/octi < $< > $@/stats.json
 
 
 .SECONDEXPANSION:
 tiles/%/octi/19: %.14.octi.loom.json
 	mkdir -p $@
-	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=5 --line-spacing=2 -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/octi < $< > $@/stats.json
+	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=5 --line-spacing=1 -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/octi < $< > $@/stats.json
 
 
 .SECONDEXPANSION:
 tiles/%/octi/18: %.14.octi.loom.json
 	mkdir -p $@
-	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=5 --line-spacing=2 -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/octi < $< > $@/stats.json
+	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=5 --line-spacing=1 -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/octi < $< > $@/stats.json
 
 .SECONDEXPANSION:
 tiles/%/octi/17: %.14.octi.loom.json
 	mkdir -p $@
-	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=5 --line-spacing=2 -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/octi < $< > $@/stats.json
+	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=5 --line-spacing=1 -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/octi < $< > $@/stats.json
 
 .SECONDEXPANSION:
 tiles/%/octi/16: %.14.octi.loom.json
 	mkdir -p $@
-	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=5 --line-spacing=2 -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/octi < $< > $@/stats.json
+	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=5 --line-spacing=1 -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/octi < $< > $@/stats.json
 
 .SECONDEXPANSION:
 tiles/%/octi/15: %.14.octi.loom.json
 	mkdir -p $@
-	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=4 --line-spacing=2 -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/octi < $< > $@/stats.json
+	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=4 --line-spacing=1 -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/octi < $< > $@/stats.json
 
 .SECONDEXPANSION:
 tiles/%/octi/14: %.14.octi.loom.json
 	mkdir -p $@
-	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=3 --line-spacing=2 -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/octi < $< > $@/stats.json
+	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=3 --line-spacing=1 -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/octi < $< > $@/stats.json
 
 .SECONDEXPANSION:
 tiles/%/octi/13: %.14.octi.loom.json
 	mkdir -p $@
-	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=3 --line-spacing=1 -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/octi < $< > $@/stats.json
+	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=3 --line-spacing=0 -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/octi < $< > $@/stats.json
 
 .SECONDEXPANSION:
 tiles/%/octi/12: %.14.octi.loom.json
 	mkdir -p $@
-	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=3 --line-spacing=0 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/octi < $< > $@/stats.json
+	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=3 --line-spacing=-1 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/octi < $< > $@/stats.json
 
 .SECONDEXPANSION:
 tiles/%/octi/11: %.14.octi.loom.json
 	mkdir -p $@
-	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=2 --line-spacing=0 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/octi < $< > $@/stats.json
+	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=2 --line-spacing=-1 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/octi < $< > $@/stats.json
 
 .SECONDEXPANSION:
 tiles/%/octi/10: %.14.octi.loom.json
 	mkdir -p $@
-	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=1 --line-spacing=0 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/octi < $< > $@/stats.json
+	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=1 --line-spacing=-1 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/octi < $< > $@/stats.json
 
 .SECONDEXPANSION:
 tiles/%/octi/9: %.14.octi.loom.json
 	mkdir -p $@
-	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=1 --line-spacing=0 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/octi < $< > $@/stats.json
+	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=1 --outline-width=1 --line-spacing=-0.9 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/octi < $< > $@/stats.json
 
 .SECONDEXPANSION:
 tiles/%/octi/8: %.14.octi.loom.json
 	mkdir -p $@
-	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=1 --line-spacing=0 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/octi < $< > $@/stats.json
+	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=1 --outline-width=0.75 --line-spacing=-1.4 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/octi < $< > $@/stats.json
 
 .SECONDEXPANSION:
 tiles/%/octi/7: %.14.octi.loom.json
 	mkdir -p $@
-	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=1 --line-spacing=0 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/octi < $< > $@/stats.json
+	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=1 --outline-width=0.5 --line-spacing=-0.9 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/octi < $< > $@/stats.json
 
 .SECONDEXPANSION:
 tiles/%/octi/6: %.14.octi.loom.json
 	mkdir -p $@
-	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=1 --line-spacing=0 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/octi < $< > $@/stats.json
+	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=0.75 --outline-width=0.3 --line-spacing=-0.6 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/octi < $< > $@/stats.json
 
 .SECONDEXPANSION:
 tiles/%/octi/5: %.14.octi.loom.json
 	mkdir -p $@
-	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=1 --line-spacing=0 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/octi < $< > $@/stats.json
+	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=0.6 --outline-width=0.25 --line-spacing=-0.55 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/octi < $< > $@/stats.json
 
 .SECONDEXPANSION:
 tiles/%/octi/4: %.14.octi.loom.json
 	mkdir -p $@
-	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=1 --line-spacing=0 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/octi < $< > $@/stats.json
+	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=0.4 --outline-width=0.25 --line-spacing=-0.55 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/octi < $< > $@/stats.json
 
 .SECONDEXPANSION:
 tiles/%/octi/3: %.14.octi.loom.json
 	mkdir -p $@
-	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=1 --line-spacing=0 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/octi < $< > $@/stats.json
+	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=0 --outline-width=0.3 --line-spacing=0 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/octi < $< > $@/stats.json
 
 .SECONDEXPANSION:
 tiles/%/octi/2: %.14.octi.loom.json
 	mkdir -p $@
-	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=1 --line-spacing=0 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/octi < $< > $@/stats.json
+	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=0 --outline-width=0.3 --line-spacing=0 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/octi < $< > $@/stats.json
 
 .SECONDEXPANSION:
 tiles/%/octi/1: %.14.octi.loom.json
 	mkdir -p $@
-	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=1 --line-spacing=0 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/octi < $< > $@/stats.json
+	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=0 --outline-width=0.3 --line-spacing=0 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/octi < $< > $@/stats.json
 
 .SECONDEXPANSION:
 tiles/%/octi/0: %.14.octi.loom.json
 	mkdir -p $@
-	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=1 --line-spacing=0 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/octi < $< > $@/stats.json
+	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=0 --outline-width=0.3 --line-spacing=0 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/octi < $< > $@/stats.json
 ##########
 
 .SECONDEXPANSION:
 tiles/%/octi-geo/20: %.14.octi-geo.loom.json
 	mkdir -p $@
-	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=5 --line-spacing=2 -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/octi-geo < $< > $@/stats.json
+	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=5 --line-spacing=1 -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/octi-geo < $< > $@/stats.json
 
 
 .SECONDEXPANSION:
 tiles/%/octi-geo/19: %.14.octi-geo.loom.json
 	mkdir -p $@
-	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=5 --line-spacing=2 -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/octi-geo < $< > $@/stats.json
+	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=5 --line-spacing=1 -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/octi-geo < $< > $@/stats.json
 
 
 .SECONDEXPANSION:
 tiles/%/octi-geo/18: %.14.octi-geo.loom.json
 	mkdir -p $@
-	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=5 --line-spacing=2 -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/octi-geo < $< > $@/stats.json
+	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=5 --line-spacing=1 -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/octi-geo < $< > $@/stats.json
 
 .SECONDEXPANSION:
 tiles/%/octi-geo/17: %.14.octi-geo.loom.json
 	mkdir -p $@
-	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=5 --line-spacing=2 -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/octi-geo < $< > $@/stats.json
+	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=5 --line-spacing=1 -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/octi-geo < $< > $@/stats.json
 
 .SECONDEXPANSION:
 tiles/%/octi-geo/16: %.14.octi-geo.loom.json
 	mkdir -p $@
-	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=5 --line-spacing=2 -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/octi-geo < $< > $@/stats.json
+	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=5 --line-spacing=1 -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/octi-geo < $< > $@/stats.json
 
 .SECONDEXPANSION:
 tiles/%/octi-geo/15: %.14.octi-geo.loom.json
 	mkdir -p $@
-	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=4 --line-spacing=2 -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/octi-geo < $< > $@/stats.json
+	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=4 --line-spacing=1 -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/octi-geo < $< > $@/stats.json
 
 .SECONDEXPANSION:
 tiles/%/octi-geo/14: %.14.octi-geo.loom.json
 	mkdir -p $@
-	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=3 --line-spacing=2 -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/octi-geo < $< > $@/stats.json
+	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=3 --line-spacing=1 -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/octi-geo < $< > $@/stats.json
 
 .SECONDEXPANSION:
 tiles/%/octi-geo/13: %.14.octi-geo.loom.json
 	mkdir -p $@
-	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=3 --line-spacing=1 -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/octi-geo < $< > $@/stats.json
+	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=3 --line-spacing=0 -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/octi-geo < $< > $@/stats.json
 
 .SECONDEXPANSION:
 tiles/%/octi-geo/12: %.14.octi-geo.loom.json
 	mkdir -p $@
-	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=3 --line-spacing=0 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/octi-geo < $< > $@/stats.json
+	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=3 --line-spacing=-1 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/octi-geo < $< > $@/stats.json
 
 .SECONDEXPANSION:
 tiles/%/octi-geo/11: %.14.octi-geo.loom.json
 	mkdir -p $@
-	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=2 --line-spacing=0 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/octi-geo < $< > $@/stats.json
+	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=2 --line-spacing=-1 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/octi-geo < $< > $@/stats.json
 
 .SECONDEXPANSION:
 tiles/%/octi-geo/10: %.14.octi-geo.loom.json
 	mkdir -p $@
-	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=1 --line-spacing=0 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/octi-geo < $< > $@/stats.json
+	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=1 --line-spacing=-1 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/octi-geo < $< > $@/stats.json
 
 .SECONDEXPANSION:
 tiles/%/octi-geo/9: %.14.octi-geo.loom.json
 	mkdir -p $@
-	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=1 --line-spacing=0 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/octi-geo < $< > $@/stats.json
+	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=1 --outline-width=1 --line-spacing=-0.9 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/octi-geo < $< > $@/stats.json
 
 .SECONDEXPANSION:
 tiles/%/octi-geo/8: %.14.octi-geo.loom.json
 	mkdir -p $@
-	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=1 --line-spacing=0 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/octi-geo < $< > $@/stats.json
+	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=1 --outline-width=0.75 --line-spacing=-1.4 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/octi-geo < $< > $@/stats.json
 
 .SECONDEXPANSION:
 tiles/%/octi-geo/7: %.14.octi-geo.loom.json
 	mkdir -p $@
-	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=1 --line-spacing=0 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/octi-geo < $< > $@/stats.json
+	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=1 --outline-width=0.5 --line-spacing=-0.9 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/octi-geo < $< > $@/stats.json
 
 .SECONDEXPANSION:
 tiles/%/octi-geo/6: %.14.octi-geo.loom.json
 	mkdir -p $@
-	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=1 --line-spacing=0 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/octi-geo < $< > $@/stats.json
+	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=0.75 --outline-width=0.3 --line-spacing=-0.6 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/octi-geo < $< > $@/stats.json
 
 .SECONDEXPANSION:
 tiles/%/octi-geo/5: %.14.octi-geo.loom.json
 	mkdir -p $@
-	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=1 --line-spacing=0 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/octi-geo < $< > $@/stats.json
+	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=0.6 --outline-width=0.25 --line-spacing=-0.55 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/octi-geo < $< > $@/stats.json
 
 .SECONDEXPANSION:
 tiles/%/octi-geo/4: %.14.octi-geo.loom.json
 	mkdir -p $@
-	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=1 --line-spacing=0 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/octi-geo < $< > $@/stats.json
+	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=0.4 --outline-width=0.25 --line-spacing=-0.55 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/octi-geo < $< > $@/stats.json
 
 .SECONDEXPANSION:
 tiles/%/octi-geo/3: %.14.octi-geo.loom.json
 	mkdir -p $@
-	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=1 --line-spacing=0 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/octi-geo < $< > $@/stats.json
+	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=0 --outline-width=0.3 --line-spacing=0 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/octi-geo < $< > $@/stats.json
 
 .SECONDEXPANSION:
 tiles/%/octi-geo/2: %.14.octi-geo.loom.json
 	mkdir -p $@
-	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=1 --line-spacing=0 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/octi-geo < $< > $@/stats.json
+	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=0 --outline-width=0.3 --line-spacing=0 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/octi-geo < $< > $@/stats.json
 
 .SECONDEXPANSION:
 tiles/%/octi-geo/1: %.14.octi-geo.loom.json
 	mkdir -p $@
-	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=1 --line-spacing=0 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/octi-geo < $< > $@/stats.json
+	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=0 --outline-width=0.3 --line-spacing=0 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/octi-geo < $< > $@/stats.json
 
 .SECONDEXPANSION:
 tiles/%/octi-geo/0: %.14.octi-geo.loom.json
 	mkdir -p $@
-	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=1 --line-spacing=0 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/octi-geo < $< > $@/stats.json
+	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=0 --outline-width=0.3 --line-spacing=0 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/octi-geo < $< > $@/stats.json
 
 ##########
 
 .SECONDEXPANSION:
 tiles/%/orthorad/20: %.14.orthorad.loom.json
 	mkdir -p $@
-	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=5 --line-spacing=2 -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/orthorad < $< > $@/stats.json
+	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=5 --line-spacing=1 -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/orthorad < $< > $@/stats.json
 
 
 .SECONDEXPANSION:
 tiles/%/orthorad/19: %.14.orthorad.loom.json
 	mkdir -p $@
-	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=5 --line-spacing=2 -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/orthorad < $< > $@/stats.json
+	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=5 --line-spacing=1 -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/orthorad < $< > $@/stats.json
 
 
 .SECONDEXPANSION:
 tiles/%/orthorad/18: %.14.orthorad.loom.json
 	mkdir -p $@
-	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=5 --line-spacing=2 -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/orthorad < $< > $@/stats.json
+	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=5 --line-spacing=1 -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/orthorad < $< > $@/stats.json
 
 .SECONDEXPANSION:
 tiles/%/orthorad/17: %.14.orthorad.loom.json
 	mkdir -p $@
-	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=5 --line-spacing=2 -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/orthorad < $< > $@/stats.json
+	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=5 --line-spacing=1 -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/orthorad < $< > $@/stats.json
 
 .SECONDEXPANSION:
 tiles/%/orthorad/16: %.14.orthorad.loom.json
 	mkdir -p $@
-	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=5 --line-spacing=2 -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/orthorad < $< > $@/stats.json
+	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=5 --line-spacing=1 -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/orthorad < $< > $@/stats.json
 
 .SECONDEXPANSION:
 tiles/%/orthorad/15: %.14.orthorad.loom.json
 	mkdir -p $@
-	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=4 --line-spacing=2 -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/orthorad < $< > $@/stats.json
+	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=4 --line-spacing=1 -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/orthorad < $< > $@/stats.json
 
 .SECONDEXPANSION:
 tiles/%/orthorad/14: %.14.orthorad.loom.json
 	mkdir -p $@
-	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=4 --line-spacing=1 -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/orthorad < $< > $@/stats.json
+	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=3 --line-spacing=1 -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/orthorad < $< > $@/stats.json
 
 .SECONDEXPANSION:
 tiles/%/orthorad/13: %.14.orthorad.loom.json
 	mkdir -p $@
-	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=3 --line-spacing=1 -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/orthorad < $< > $@/stats.json
+	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=3 --line-spacing=0 -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/orthorad < $< > $@/stats.json
 
 .SECONDEXPANSION:
 tiles/%/orthorad/12: %.14.orthorad.loom.json
 	mkdir -p $@
-	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=3 --line-spacing=0 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/orthorad < $< > $@/stats.json
+	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=3 --line-spacing=-1 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/orthorad < $< > $@/stats.json
 
 .SECONDEXPANSION:
 tiles/%/orthorad/11: %.14.orthorad.loom.json
 	mkdir -p $@
-	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=2 --line-spacing=0 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/orthorad < $< > $@/stats.json
+	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=2 --line-spacing=-1 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/orthorad < $< > $@/stats.json
 
 .SECONDEXPANSION:
 tiles/%/orthorad/10: %.14.orthorad.loom.json
 	mkdir -p $@
-	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=1 --line-spacing=0 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/orthorad < $< > $@/stats.json
+	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=1 --line-spacing=-1 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/orthorad < $< > $@/stats.json
 
 .SECONDEXPANSION:
 tiles/%/orthorad/9: %.14.orthorad.loom.json
 	mkdir -p $@
-	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=1 --line-spacing=0 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/orthorad < $< > $@/stats.json
+	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=1 --outline-width=1 --line-spacing=-0.9 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/orthorad < $< > $@/stats.json
 
 .SECONDEXPANSION:
 tiles/%/orthorad/8: %.14.orthorad.loom.json
 	mkdir -p $@
-	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=1 --line-spacing=0 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/orthorad < $< > $@/stats.json
+	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=1 --outline-width=0.75 --line-spacing=-1.4 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/orthorad < $< > $@/stats.json
 
 .SECONDEXPANSION:
 tiles/%/orthorad/7: %.14.orthorad.loom.json
 	mkdir -p $@
-	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=1 --line-spacing=0 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/orthorad < $< > $@/stats.json
+	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=1 --outline-width=0.5 --line-spacing=-0.9 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/orthorad < $< > $@/stats.json
 
 .SECONDEXPANSION:
 tiles/%/orthorad/6: %.14.orthorad.loom.json
 	mkdir -p $@
-	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=1 --line-spacing=0 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/orthorad < $< > $@/stats.json
+	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=0.75 --outline-width=0.3 --line-spacing=-0.6 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/orthorad < $< > $@/stats.json
 
 .SECONDEXPANSION:
 tiles/%/orthorad/5: %.14.orthorad.loom.json
 	mkdir -p $@
-	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=1 --line-spacing=0 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/orthorad < $< > $@/stats.json
+	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=0.6 --outline-width=0.25 --line-spacing=-0.55 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/orthorad < $< > $@/stats.json
 
 .SECONDEXPANSION:
 tiles/%/orthorad/4: %.14.orthorad.loom.json
 	mkdir -p $@
-	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=1 --line-spacing=0 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/orthorad < $< > $@/stats.json
+	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=0.4 --outline-width=0.25 --line-spacing=-0.55 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/orthorad < $< > $@/stats.json
 
 .SECONDEXPANSION:
 tiles/%/orthorad/3: %.14.orthorad.loom.json
 	mkdir -p $@
-	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=1 --line-spacing=0 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/orthorad < $< > $@/stats.json
+	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=0 --outline-width=0.3 --line-spacing=0 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/orthorad < $< > $@/stats.json
 
 .SECONDEXPANSION:
 tiles/%/orthorad/2: %.14.orthorad.loom.json
 	mkdir -p $@
-	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=1 --line-spacing=0 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/orthorad < $< > $@/stats.json
+	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=0 --outline-width=0.3 --line-spacing=0 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/orthorad < $< > $@/stats.json
 
 .SECONDEXPANSION:
 tiles/%/orthorad/1: %.14.orthorad.loom.json
 	mkdir -p $@
-	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=1 --line-spacing=0 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/orthorad < $< > $@/stats.json
+	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=0 --outline-width=0.3 --line-spacing=0 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/orthorad < $< > $@/stats.json
 
 .SECONDEXPANSION:
 tiles/%/orthorad/0: %.14.orthorad.loom.json
 	mkdir -p $@
-	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=1 --line-spacing=0 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/orthorad < $< > $@/stats.json
+	$(TRANSITMAP) --tight-stations --render-engine mvt --line-width=0 --outline-width=0.3 --line-spacing=0 g -z=$(lastword $(subst /, , $@)) --mvt-path tiles/$*/orthorad < $< > $@/stats.json
 
 
 # STATS

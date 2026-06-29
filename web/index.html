@@ -7,9 +7,9 @@
 	<meta name="contact" content="brosi[at]cs.uni-freiburg.de">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta property="og:title" content="LOOM Global Transit Maps">
-	<link rel="stylesheet" href="leaflet.css" />
-	<script type="text/javascript" src="leaflet.js"></script>
-	<script type="text/javascript" src="Leaflet.VectorGrid.js"></script>
+	<link rel="stylesheet" href="/global/leaflet.css" />
+	<script type="text/javascript"  src="/global/leaflet.js"></script>
+	<script type="text/javascript"  src="/global/Leaflet.VectorGrid.js"></script>
 	<style>
 		body {
 		     font-size: 16px;
@@ -299,8 +299,8 @@
 		    loadStats(curNetwork, curLayout, map.getZoom()).then((stats) => {
 		        let html = "<table>";
 		        html += "<tr><th colspan=2><b><a id='sparqlquery' target='_blank' href='#'>SPARQL Query</a></b></th></tr>"
-		        html += "<tr><td>Query time</td><td>" + msToTime(stats["query"]["query-time"] * 1000) + "s</td></tr>"
-		        html += "<tr><td>Transfer time</td><td>" + msToTime(stats["query"]["transfer-time"] * 1000) + "s</td></tr>"
+		        html += "<tr><td>Query time</td><td>" + msToTime(stats["query"]["query-time"] * 1000) + "</td></tr>"
+		        html += "<tr><td>Transfer time</td><td>" + msToTime(stats["query"]["transfer-time"] * 1000) + "</td></tr>"
 
 		        html += "<tr><th colspan=2><b>OSM Input</b></th></tr>"
 		        html += "<tr><td>Num stations</td><td>" + stats["input"]["num_nds"] + "</td></tr>"
@@ -392,7 +392,7 @@
 		        lat = parseFloat(parts[3]);
 		        lng = parseFloat(parts[4]);
 
-		        if (lat != NaN && lng != NaN && zoom >= 0 && zoom <= 20 && ['tram', 'subway-lightrail', 'rail', 'rail-commuter'].includes(network) && ['geo', 'octi', 'octi-geo', 'orthorad'].includes(layout)) {
+		        if (lat != NaN && lng != NaN && zoom >= 0 && zoom <= 20 && ['tram', 'subway-lightrail', 'rail', 'rail-commuter', 'rail-night'].includes(network) && ['geo', 'octi', 'octi-geo', 'orthorad'].includes(layout)) {
 		            loadMap(network, layout);
 		            map.setView([lat, lng], zoom);
 		        }

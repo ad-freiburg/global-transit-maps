@@ -29,5 +29,19 @@ SELECT ?color ?id ?label ?station_label ?station_id ?geom WHERE {
 	  ?osm_id geo:hasGeometry ?geom .
 	  { ?osm_id osmkey:public_transport "stop_position" } UNION { ?osm_id osmkey:public_transport "station" } .
 	  ?osm_id osmkey:name ?station_label .
+  } UNION {
+	  {?rel osmkey:route "railway"} UNION {?rel osmkey:route "train" } .
+	  ?rel osmrel:member ?mem .
+	  ?rel osmkey:service "commuter".
+	  ?mem osm:id ?osm_id_stop .
+	  { ?osm_id_stop osmkey:public_transport "stop_position" } UNION { ?osm_id_stop osmkey:public_transport "station" } UNION { ?osm_id_stop osmkey:railway "station" } .
+	  ?stop_rel osmrel:member ?mem2 .
+	  ?mem2 osm:id ?osm_id_stop .
+	  ?stop_rel osmkey:public_transport	"stop_area" .
+	  ?stop_rel osmrel:member ?mem3 .
+	  ?mem3 osm:id ?osm_id .
+	  { ?osm_id osmkey:public_transport "stop_position" } UNION { ?osm_id osmkey:public_transport "station" } UNION { ?osm_id osmkey:railway "station" } .
+	  ?osm_id geo:hasGeometry ?geom .
+	  ?osm_id osmkey:name ?station_label .
   }
 }
